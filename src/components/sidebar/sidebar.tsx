@@ -46,7 +46,7 @@ const Sidebar = () => {
             href: "/dashboard",
         },
         {
-            key: "content",
+            key: "library",
             label: "Content Library",
             icon: TbCards,
             href: "/library",
@@ -65,11 +65,6 @@ const Sidebar = () => {
         }
     };
 
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
-        localStorage.setItem("sidebarCollapsed", (!isCollapsed).toString());
-    };
-
     const router = useRouter();
 
     return (
@@ -84,7 +79,7 @@ const Sidebar = () => {
         >
             {/* Logo */}
             <Link href="/dashboard" className={`flex flex-col items-center`}>
-                <Image src="/images/appLogo.svg" alt="Loading" width={90} height={90} />
+                <img src="/images/appLogo.svg" alt="Loading" className="w-[90px] h-[90px]" />
                 <p className="text-primary font-bold">MESTRE.IA</p>
             </Link>
 
@@ -109,7 +104,7 @@ const Sidebar = () => {
                   ${isActive ? "bg-primary" : ""}
                 `}
                             >
-                                <Image src="/images/sidebar/curv.svg" alt="Loading" width={12} height={50} className="absolute left-0" />
+                                <img src="/images/sidebar/curv.svg" alt="Loading" className="w-[12px] h-[50px] absolute left-0" />
 
                                 <Icon
                                     className={`${isActive ? "text-white" : "text-secondary"} text-xl`}

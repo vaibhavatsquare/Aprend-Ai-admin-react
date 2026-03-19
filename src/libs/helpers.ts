@@ -75,7 +75,22 @@ const fetch = async <T>(config: AxiosRequestConfig): Promise<T> => {
                 Authorization: `Bearer ${idToken}`,
             }
         }
-        const response: AxiosResponse<T> = await axios.request<T>(config);
+        const response: AxiosResponse<T> = await axios.request<T>({
+            ...config,
+            paramsSerializer: (params) => {
+                const searchParams = new URLSearchParams();
+
+                Object.entries(params).forEach(([key, value]) => {
+                    if (Array.isArray(value)) {
+                        value.forEach((v) => searchParams.append(key, v));
+                    } else {
+                        searchParams.append(key, value as string);
+                    }
+                });
+
+                return searchParams.toString();
+            },
+        });
         return response.data;
     } catch (error: any) {
         if (error.response?.status === 401) {
@@ -200,7 +215,6 @@ export const formatDate = (dateString: string) => {
 };
 
 export const subjects = [
-    { label: "All", value: "ALL" },
     { label: "English", value: "ENGLISH" },
     { label: "Mathematics", value: "MATHEMATICS" },
     { label: "Science", value: "SCIENCE" },
@@ -232,3 +246,26 @@ export const getInitials = (name: string) => {
         parts[parts.length - 1][0].toUpperCase()
     );
 };
+
+export const educationLevels = [
+    {
+        label: "Elementary School",
+        value: "ELEMENTARY"
+    },
+    {
+        label: "High School",
+        value: "HIGH_SCHOOL"
+    },
+    {
+        label: "Pre-Vestibular",
+        value: "PRE_VESTIBULAR"
+    },
+    {
+        label: "University",
+        value: "UNIVERSITY"
+    },
+    {
+        label: "Competitive Exam",
+        value: "COMPETITIVE_EXAMS"
+    },
+];

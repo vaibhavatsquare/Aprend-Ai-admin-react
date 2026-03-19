@@ -114,3 +114,25 @@ body {
 .custom-switch.ant-switch-checked {
   background-color: #0F3057 !important;
 }
+
+/* Ant Select focus color fix */
+.ant-select-focused .ant-select-selector {
+  border-color: #0F3057 !important;
+  box-shadow: none !important;
+}
+
+/* Hover */
+.ant-select-selector:hover {
+  border-color: #0F3057 !important;
+}
+
+/* Modal button */
+.ant-btn-primary {
+  background-color: #0F3057 !important;
+  border-color: #0F3057 !important;
+}
+
+/* Upload drag hover */
+.ant-upload.ant-upload-drag:hover {
+  border-color: #0F3057 !important;
+}

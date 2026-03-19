@@ -11,7 +11,7 @@ export const backendLogin = async () => {
 export const backendLogout = async (sessionId: string) => {
     try {
         return await fetch({
-            url: `/auth/${sessionId}`,
+            url: `/admin/auth/${sessionId}`,
             method: "PUT",
         });
     } catch {

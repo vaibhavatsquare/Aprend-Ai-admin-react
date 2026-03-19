@@ -11,54 +11,6 @@ const firebaseConfig = {
 
 };
 
-const app = initializeApp(firebaseConfig);
-const messaging = app.messaging();
-
-// ✅ Manually handle background notifications
-messaging.onBackgroundMessage((payload) => {
-    console.log("Received background message:", payload);
-
-    if (!payload.notification) {
-        console.warn("No notification payload found, skipping.");
-        return;
-    }
-
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: payload.notification.icon,
-        data: { url: payload.fcmOptions?.link || "/" },
-    };
-
-    // ✅ Prevent Duplicate Notifications
-    self.registration.getNotifications().then((existingNotifications) => {
-        const alreadyExists = existingNotifications.some(
-            (n) => n.title === notificationTitle && n.body === notificationOptions.body
-        );
-        if (!alreadyExists) {
-            console.log("Showing notification:", notificationTitle);
-            self.registration.showNotification(notificationTitle, notificationOptions);
-        } else {
-            console.log("Duplicate notification prevented:", notificationTitle);
-        }
-    });
-});
-
-self.addEventListener("notificationclick", (event) => {
-
-    event.notification.close();
-
-    const url = event.notification?.data?.url || "/";
-
-    event.waitUntil(
-        clients.openWindow(url)
-    );
-
-});
-
-
-
-
 
 
 

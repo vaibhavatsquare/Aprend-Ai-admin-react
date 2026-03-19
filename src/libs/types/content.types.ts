@@ -1,0 +1,24 @@
+export interface UploadFileResponse {
+    preSignedUrl: string;
+    outPutUrl: string;
+}
+
+export interface StudyMaterial {
+    id: string;
+    subject: string;
+    educationLevel: string;
+    fileUrl: string;
+    createdAt: string;
+}
+
+export interface StudyMaterial {
+    id: string;
+    subject: string;
+    educationLevel: string;
+    fileUrl: string;
+    numberOfQuestions: number;
+    status: "PENDING" | "FAILED" | "COMPLETED";
+    isDeleted: boolean;
+    createdAt: string;
+    updatedAt: string;
+}

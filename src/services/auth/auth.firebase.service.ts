@@ -10,7 +10,6 @@ import {
     updateProfile,
     getIdToken,
 } from "firebase/auth";
-import { getMessaging, getToken } from "firebase/messaging";
 import { auth } from "../../configs/firebase.config";
 import { setCookie } from "@/src/services/coockies/coockie.service";
 import { logoutUser } from "@/src/services/api/auth.api";
