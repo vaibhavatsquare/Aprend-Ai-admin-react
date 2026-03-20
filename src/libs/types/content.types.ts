@@ -16,9 +16,17 @@ export interface StudyMaterial {
     subject: string;
     educationLevel: string;
     fileUrl: string;
+    name: string;
     numberOfQuestions: number;
     status: "PENDING" | "FAILED" | "COMPLETED";
     isDeleted: boolean;
     createdAt: string;
     updatedAt: string;
 }
+
+export type GetMaterialsResponse = {
+    total: number;
+    list: StudyMaterial[];
+    hasMany: boolean;
+    count: number;
+};
