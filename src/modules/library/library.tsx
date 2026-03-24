@@ -15,6 +15,7 @@ const PAGE_LIMIT = 10;
 const Library = () => {
     const [data, setData] = useState<StudyMaterial[]>([]);
     const [loading, setLoading] = useState(true);
+    const [total, setTotal] = useState(0);
 
     const [subject, setSubject] = useState("ALL");
     const [level, setLevel] = useState("ALL");
@@ -44,11 +45,13 @@ const Library = () => {
                 educationLevels: levelParam,
                 skip: (page - 1) * PAGE_LIMIT,
                 take: PAGE_LIMIT,
+                search_column: ["name"],
                 search,
                 orderBy: "createdAt|desc",
             });
 
             setData(res?.list || []);
+            setTotal(res?.total || 0);
         } finally {
             setLoading(false);
         }
@@ -114,6 +117,9 @@ const Library = () => {
                     data={data}
                     loading={loading}
                     page={page}
+                    total={total}
+                    setPage={setPage}
+                    pageSize={PAGE_LIMIT}
                     refresh={fetchData}
                 />
 

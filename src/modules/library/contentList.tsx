@@ -8,6 +8,8 @@ export default function ContentList({
     data,
     refresh,
     loading,
+    total,
+    page,
     setPage,
     pageSize,
 }: any) {
@@ -37,6 +39,10 @@ export default function ContentList({
             render: (val: string) => levelMap[val] || val,
         },
         {
+            title: "Name",
+            dataIndex: "name",
+        },
+        {
             title: "File",
             render: (r: any) => (
                 <a href={r.fileUrl} target="_blank">
@@ -63,7 +69,7 @@ export default function ContentList({
         <div className="h-full flex flex-col bg-white rounded-xl p-4">
 
             {/* TABLE AREA */}
-            <div className="flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 min-h-0 overflow-auto scrollbar">
                 <Table
                     rowKey="id"
                     columns={columns}
@@ -77,7 +83,9 @@ export default function ContentList({
             {/* PAGINATION */}
             <div className="flex justify-end pt-2 mb-[-20px]">
                 <Pagination
+                    current={page}
                     pageSize={pageSize}
+                    total={total}
                     onChange={(p) => setPage(p)}
                 />
             </div>

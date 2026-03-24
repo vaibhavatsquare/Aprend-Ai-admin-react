@@ -47,6 +47,7 @@ export interface GetMaterialsParams {
     educationLevels?: string[];
     skip?: number;
     take?: number;
+    search_column?: string[];
     search?: string;
     orderBy?: string;
 }
