@@ -16,7 +16,7 @@ const withAuth = <P extends object>(
         const checkAuthState = () => {
             const adminToken = getCookie("adminToken");
             waitForAuthState().then((user) => {
-                if (!user || !adminToken) {
+                if (!user || !adminToken || adminToken.trim() === "") {
                     clearData();
                     router.replace("/login"); // Replace with your public login route
                 } else {

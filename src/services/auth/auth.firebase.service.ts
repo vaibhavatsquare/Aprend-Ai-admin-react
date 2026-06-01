@@ -42,8 +42,9 @@ export const signOutUser = async (): Promise<void> => {
     await signOut(auth);
     console.log("🟣 logout");
     localStorage.clear();
-    document.cookie = "adminToken=; max-age=0";
-    setCookie("adminToken", "");
+    // document.cookie = "adminToken=; max-age=0";
+    // setCookie("adminToken", "");
+    document.cookie = "adminToken=; max-age=0"; 
 };
 
 /* AUTH STATE LISTENER */
