@@ -22,7 +22,8 @@ const Navbar = () => {
 
     return (
         <div
-            className="w-full h-[80px] px-8 flex items-center justify-between bg-white relative z-10 shadow-[0_4px_10px_rgba(0,0,0,0.06)]"
+            // className="w-full h-[80px] px-8 flex items-center justify-between bg-white relative z-10 shadow-[0_4px_10px_rgba(0,0,0,0.06)]"
+            className="w-full h-[80px] px-8 flex items-center justify-between bg-white relative z-10"
         >
             {/* LEFT SIDE */}
             <div className="flex flex-col gap-1">

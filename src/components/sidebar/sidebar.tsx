@@ -13,6 +13,7 @@ import { TbCards } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 import ConfirmModal from "./confirmModal";
 import { signOutUser } from "@/src/services/auth/auth.firebase.service";
+import { PiGraduationCap } from "react-icons/pi";
 
 const poppins = Poppins({
     weight: ["300", "400", "500", "600", "700"],
@@ -50,6 +51,12 @@ const Sidebar = () => {
             label: "Content Library",
             icon: TbCards,
             href: "/library",
+        },
+        {
+            key: "education-level",
+            label: "Education Level",
+            icon: PiGraduationCap,
+            href: "/education-level",
         },
     ];
 
