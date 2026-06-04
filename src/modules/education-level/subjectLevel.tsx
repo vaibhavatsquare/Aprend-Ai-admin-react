@@ -1,10 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
-import { message } from "antd";
+import React, { useState, useEffect } from "react";
+import { message, Spin, Button } from "antd";
 import { FiEdit2, FiTrash2, FiPlus, FiX } from "react-icons/fi";
 import { GoArrowLeft } from "react-icons/go";
 import { PiGraduationCap } from "react-icons/pi";
+import { getSubjects, createSubject, updateSubject, deleteSubject, type Subject as ApiSubject } from "@/src/services/api/educationLevel.api";
+
+const SUBJECT_ICON_MAP: Record<string, string> = {
+    MATHEMATICS: "🔢",
+    SCIENCES: "🔬",
+    SCIENCE_FOUNDATIONS: "🔬",
+    PORTUGUESE_LITERATURE: "📖",
+    HUMANITIES: "🌍",
+    ENGLISH: "🗣️",
+    ESSAY_BASICS: "✏️",
+    CALCULUS_LINEAR_ALGEBRA: "📐",
+    STATISTICS_RESEARCH: "📊",
+    LOGIC_COMPUTING: "💻",
+    ACADEMIC_WRITING: "📝",
+    STUDY_PLANNING: "🗓️",
+    ADVANCED_MATHEMATICS: "📐",
+    ADVANCED_SCIENCES: "⚗️",
+    TIMED_MOCK_EXAMS: "⏱️",
+    ESSAY_ADVANCED: "✏️",
+    GAMIFIED_LEARNING: "🎮",
+    READING_WRITING: "📖",
+    SCIENCE_NATURE: "🌱",
+    HISTORY_GEOGRAPHY: "🌍",
+    ENGLISH_BASICS: "🗣️",
+    MATHEMATICS_FOUNDATIONS: "🔢",
+    CONSTITUTIONAL_ADMINISTRATIVE_LAW: "⚖️",
+    QUANTITATIVE_REASONING: "🔢",
+    PORTUGUESE_CONCURSO: "📖",
+    CURRENT_AFFAIRS_GEOGRAPHY: "🌍",
+    LOGICAL_REASONING: "🧠",
+    EXAM_SPECIFIC_MODULES: "🎯",
+};
+const getSubjectIcon = (code: string, imageUrl: string | null) =>
+    imageUrl ?? SUBJECT_ICON_MAP[code] ?? "📚";
 
 type Subject = {
     id: string;
@@ -14,10 +48,10 @@ type Subject = {
 };
 
 const EditModal = ({
-    isOpen, initialLabel, initialSubtitle, initialIcon, onClose, onSubmit,
+    isOpen, initialLabel, initialSubtitle, initialIcon, onClose, onSubmit, loading,
 }: {
     isOpen: boolean; initialLabel: string; initialSubtitle: string;
-    initialIcon: string; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void;
+    initialIcon: string; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean;
 }) => {
     const [label, setLabel] = React.useState(initialLabel);
     const [subtitle, setSubtitle] = React.useState(initialSubtitle);
@@ -39,16 +73,20 @@ const EditModal = ({
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                    <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px]">
-                        {icon}
+                    <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px] overflow-hidden">
+                        {icon && icon.startsWith("http") ? (
+                            <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                        ) : (
+                            <span>{icon || "📚"}</span>
+                        )}
                     </div>
                     <div>
-                        <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon (emoji)</label>
+                        <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon / URL</label>
                         <input
                             value={icon}
                             onChange={(e) => setIcon(e.target.value)}
                             className="w-[80px] h-[36px] text-center text-[20px] border border-gray-200 rounded-[10px] outline-none focus:border-[#0F3057]"
-                            placeholder="📚"
+                            placeholder="📚 or URL"
                         />
                     </div>
                 </div>
@@ -66,16 +104,18 @@ const EditModal = ({
                             placeholder="Enter subtitle" />
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 h-[44px] border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={() => onSubmit(label, subtitle, icon)} className="flex-1 h-[44px] bg-[#0F3057] text-white rounded-[12px] text-[14px] font-semibold hover:opacity-90">Save</button>
+                <div className="flex gap-3 w-full">
+                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <div className="flex-1">
+                        <Button onClick={() => onSubmit(label, subtitle, icon)} loading={loading} disabled={loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Save</Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-const DeleteModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; }) => {
+const DeleteModal = ({ isOpen, onClose, onConfirm, loading }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; loading?: boolean; }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -86,15 +126,17 @@ const DeleteModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose:
                 <h3 className="text-[16px] font-semibold text-[#121212] text-center">Are you sure?</h3>
                 <p className="text-[13px] text-gray-500 text-center">This action cannot be undone.</p>
                 <div className="flex gap-3 w-full">
-                    <button onClick={onClose} className="flex-1 h-[44px] border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={onConfirm} className="flex-1 h-[44px] bg-red-500 text-white rounded-[12px] text-[14px] font-semibold hover:opacity-90">Delete</button>
+                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <div className="flex-1">
+                        <Button onClick={onConfirm} loading={loading} disabled={loading} style={{ height: "44px" }} className="w-full bg-red-500! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Delete</Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; }) => {
+const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean; }) => {
     const [label, setLabel] = React.useState("");
     const [subtitle, setSubtitle] = React.useState("");
     const [icon, setIcon] = React.useState("📚");
@@ -116,16 +158,20 @@ const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () 
                 </div>
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px]">
-                            {icon || "🎓"}
+                        <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px] overflow-hidden">
+                            {icon && icon.startsWith("http") ? (
+                                <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                            ) : (
+                                <span>{icon || "📚"}</span>
+                            )}
                         </div>
                         <div>
-                            <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon (emoji)</label>
+                            <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon / URL</label>
                             <input
                                 value={icon}
                                 onChange={(e) => setIcon(e.target.value)}
                                 className="w-[80px] h-[36px] text-center text-[20px] border border-gray-200 rounded-[10px] outline-none focus:border-[#0F3057]"
-                                placeholder="🎓"
+                                placeholder="📚 or URL"
                             />
                         </div>
                     </div>
@@ -142,9 +188,11 @@ const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () 
                             placeholder="e.g. Algebra, geometry and more" />
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 h-[44px] border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={handleSubmit} disabled={!label.trim()} className="flex-1 h-[44px] bg-[#0F3057] text-white rounded-[12px] text-[14px] font-semibold hover:opacity-90 disabled:opacity-50">Add</button>
+                <div className="flex gap-3 w-full">
+                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <div className="flex-1">
+                        <Button onClick={handleSubmit} loading={loading} disabled={!label.trim() || loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Add</Button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -153,43 +201,110 @@ const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () 
 
 interface SubjectLevelProps {
     levelTitle: string;
-    initialSubjects: Subject[];
+    educationLevelId: string;
     onBack: () => void;
-    onSubjectsChange: (subjects: Subject[]) => void;
 }
-
-const SubjectLevel = ({ levelTitle, initialSubjects, onBack, onSubjectsChange }: SubjectLevelProps) => {
-    const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
+// Main component
+const SubjectLevel = ({ levelTitle, educationLevelId, onBack }: SubjectLevelProps) => {
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState<Subject | null>(null);
     const [showEdit, setShowEdit] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [addLoading, setAddLoading] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const update = (updated: Subject[]) => {
-        setSubjects(updated);
-        onSubjectsChange(updated);
+    useEffect(() => {
+        fetchSubjects();
+    }, [educationLevelId]);
+
+    const fetchSubjects = async () => {
+        try {
+            setLoading(true);
+            const data = await getSubjects(educationLevelId);
+            const sorted = [...data.list].sort((a, b) => a.sortOrder - b.sortOrder);
+            setSubjects(sorted.map((s: ApiSubject) => ({
+                id: s.id,
+                label: s.name,
+                subtitle: s.topics?.join(" , ") ?? s.description ?? "",
+                icon: getSubjectIcon(s.code, s.imageUrl),
+            })));
+        } catch {
+            message.error("Failed to load subjects");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleEdit = (newLabel: string, newSubtitle: string, newIcon: string) => {
+    const handleEdit = async (newLabel: string, newSubtitle: string, newIcon: string) => {
         if (!selectedItem) return;
-        update(subjects.map((s) => s.id === selectedItem.id
-            ? { ...s, label: newLabel, subtitle: newSubtitle, icon: newIcon }
-            : s));
-        setShowEdit(false);
-        message.success("Subject updated successfully");
+        try {
+            setEditLoading(true);
+            await updateSubject(selectedItem.id, {
+                educationLevelId,
+                code: selectedItem.id,
+                name: newLabel,
+                description: newSubtitle,
+                imageUrl: newIcon.startsWith("http") ? newIcon : null,
+                topics: [],
+                moduleType: "Core",
+                sortOrder: subjects.indexOf(selectedItem) + 1,
+                status: "ENABLED",
+            });
+            setSubjects((prev) => prev.map((s) => s.id === selectedItem.id
+                ? { ...s, label: newLabel, subtitle: newSubtitle, icon: newIcon }
+                : s));
+            setShowEdit(false);
+            message.success("Subject updated successfully");
+        } catch {
+            message.error("Failed to update subject");
+        } finally {
+            setEditLoading(false);
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!selectedItem) return;
-        update(subjects.filter((s) => s.id !== selectedItem.id));
-        setShowDelete(false);
-        message.success("Subject deleted successfully");
+        try {
+            setDeleteLoading(true);
+            await deleteSubject(selectedItem.id);
+            setSubjects((prev) => prev.filter((s) => s.id !== selectedItem.id));
+            setShowDelete(false);
+            message.success("Subject deleted successfully");
+        } catch {
+            message.error("Failed to delete subject");
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
-    const handleAdd = (label: string, subtitle: string, icon: string) => {
-        update([...subjects, { id: Date.now().toString(), label, subtitle, icon }]);
-        setShowAdd(false);
-        message.success("Subject added successfully");
+    const handleAdd = async (label: string, subtitle: string, icon: string) => {
+        try {
+            setAddLoading(true);
+            const created = await createSubject({
+                educationLevelId,
+                code: label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""),
+                name: label,
+                description: subtitle,
+                imageUrl: icon.startsWith("http") ? icon : null,
+                topics: [],
+                moduleType: "Core",
+            });
+            setSubjects((prev) => [...prev, {
+                id: created.id,
+                label,
+                subtitle,
+                icon,
+            }]);
+            setShowAdd(false);
+            message.success("Subject added successfully");
+        } catch {
+            message.error("Failed to add subject");
+        } finally {
+            setAddLoading(false);
+        }
     };
 
     return (
@@ -211,7 +326,11 @@ const SubjectLevel = ({ levelTitle, initialSubjects, onBack, onSubjectsChange }:
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-6 scrollbar">
-                        {subjects.length === 0 ? (
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full w-full py-20">
+                                <Spin size="large" />
+                            </div>
+                        ) : subjects.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-3">
                                 <PiGraduationCap className="text-gray-300 text-5xl" />
                                 <p className="text-[14px] text-gray-400">No subjects yet</p>
@@ -226,7 +345,11 @@ const SubjectLevel = ({ levelTitle, initialSubjects, onBack, onSubjectsChange }:
                                     >
                                         <div className="flex items-center gap-4 min-w-0 flex-1">
                                             <div className="w-[52px] h-[52px] rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0 text-2xl overflow-hidden">
-                                                {item.icon}
+                                                {item.icon.startsWith("http") ? (
+                                                    <img src={item.icon} alt={item.label} className="w-full h-full object-cover rounded-2xl" />
+                                                ) : (
+                                                    <span>{item.icon}</span>
+                                                )}
                                             </div>
                                             <div className="min-w-0">
                                                 <h3 className="text-[17px] font-medium text-[#121212] truncate">{item.label}</h3>
@@ -264,9 +387,10 @@ const SubjectLevel = ({ levelTitle, initialSubjects, onBack, onSubjectsChange }:
                 initialIcon={selectedItem?.icon || ""}
                 onClose={() => setShowEdit(false)}
                 onSubmit={handleEdit}
+                loading={editLoading}
             />
-            <DeleteModal isOpen={showDelete} onClose={() => setShowDelete(false)} onConfirm={handleDelete} />
-            <AddModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} />
+            <DeleteModal isOpen={showDelete} onClose={() => setShowDelete(false)} onConfirm={handleDelete} loading={deleteLoading} />
+            <AddModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={addLoading} />
         </>
     );
 };

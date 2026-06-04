@@ -1,86 +1,48 @@
 "use client";
 
-import React, { useState } from "react";
-import { message } from "antd";
+import React, { useState, useEffect } from "react";
+import { message, Spin, Button } from "antd";
 import { FiEdit2, FiTrash2, FiPlus, FiX } from "react-icons/fi";
 import { PiGraduationCap } from "react-icons/pi";
 import SubjectLevel from "./subjectLevel";
+import { getEducationLevels, createEducationLevel, updateEducationLevel, deleteEducationLevel, type EducationLevel } from "@/src/services/api/educationLevel.api";
 
-const INITIAL_LEVELS = [
-    {
-        id: "1", label: "ENEM", subtitle: "Exame Nacional do Ensino Médio", icon: "🎯",
-        subjects: [
-            { id: "s1", label: "Mathematics", subtitle: "Algebra · Functions · Geometry · Statistics · Probability · Financial Math", icon: "🔢" },
-            { id: "s2", label: "Natural Sciences", subtitle: "Biology · Physics · Chemistry · Ecology · Genetics", icon: "🔬" },
-            { id: "s3", label: "Human Sciences", subtitle: "History · Geography · Philosophy · Sociology · Brazilian Culture", icon: "🌍" },
-            { id: "s4", label: "Languages & Literacy", subtitle: "Portuguese · Literature · English · Spanish · Arts · Media", icon: "📖" },
-            { id: "s5", label: "Essay Writing", subtitle: "Argumentative essay · 5 INEP criteria · Topic prediction · AI feedback", icon: "✏️" },
-        ],
-    },
-    {
-        id: "2", label: "High School", subtitle: "Ensino Médio · Years 1–3", icon: "📚",
-        subjects: [
-            { id: "s6", label: "Mathematics", subtitle: "Algebra · Quadratic functions · Logarithms · Trigonometry · Geometry", icon: "🔢" },
-            { id: "s7", label: "Sciences", subtitle: "Biology · Physics · Chemistry · Environmental Science", icon: "🔬" },
-            { id: "s8", label: "Portuguese & Literature", subtitle: "Grammar · Text analysis · Brazilian literary periods · Writing skills", icon: "📖" },
-            { id: "s9", label: "Humanities", subtitle: "Brazilian History · World History · Geography · Philosophy · Sociology", icon: "🌍" },
-            { id: "s10", label: "English", subtitle: "Reading comprehension · Vocabulary · Basic grammar · ENEM-style texts", icon: "🗣️" },
-            { id: "s11", label: "Essay Basics", subtitle: "Paragraph structure · Argumentation · Connectives · Introduction to ENEM essay", icon: "✏️" },
-        ],
-    },
-    {
-        id: "3", label: "Pré-Vestibular", subtitle: "Intensive university prep", icon: "🏆",
-        subjects: [
-            { id: "s12", label: "Advanced Mathematics", subtitle: "Calculus intro · Complex numbers · Combinatorics · Analytical geometry", icon: "📐" },
-            { id: "s13", label: "Advanced Sciences", subtitle: "Organic chemistry · Quantum physics · Molecular biology · Genetics", icon: "⚗️" },
-            { id: "s14", label: "Portuguese & Literature", subtitle: "All literary periods · Advanced grammar · Text interpretation · Rhetoric", icon: "📖" },
-            { id: "s15", label: "Humanities — Deep Dive", subtitle: "Brazilian Republic · Geopolitics · Contemporary philosophy · Social theory", icon: "🌍" },
-            { id: "s16", label: "Essay — Advanced", subtitle: "ENEM + FUVEST essay formats · AI scoring · Thesis construction · Topic bank", icon: "✏️" },
-            { id: "s17", label: "Timed Mock Exams", subtitle: "Full ENEM simulation · FUVEST format · UNICAMP format · Score analysis", icon: "⏱️" },
-        ],
-    },
-    {
-        id: "4", label: "University", subtitle: "Undergraduate support", icon: "🎓",
-        subjects: [
-            { id: "s18", label: "Calculus & Linear Algebra", subtitle: "Limits · Derivatives · Integrals · Matrices · Vectors", icon: "📐" },
-            { id: "s19", label: "Science Foundations", subtitle: "Physics · Chemistry · Biology — university level concepts", icon: "🔬" },
-            { id: "s20", label: "Logic & Computing", subtitle: "Boolean logic · Algorithms · Data structures · Python basics", icon: "💻" },
-            { id: "s21", label: "Statistics & Research", subtitle: "Descriptive stats · Hypothesis testing · Data analysis · Academic writing", icon: "📊" },
-            { id: "s22", label: "Academic Writing", subtitle: "TCC structure · Scientific articles · ABNT formatting · Thesis writing", icon: "📝" },
-            { id: "s23", label: "Study Planning", subtitle: "Semester planning · Exam scheduling · Spaced repetition · Productivity", icon: "🗓️" },
-        ],
-    },
-    {
-        id: "5", label: "Competitive Exams", subtitle: "Concursos Públicos", icon: "📋",
-        subjects: [
-            { id: "s24", label: "Constitutional & Administrative Law", subtitle: "Brazilian Constitution · Public administration · Administrative acts · Rights", icon: "⚖️" },
-            { id: "s25", label: "Quantitative Reasoning", subtitle: "Basic maths · Percentages · Ratios · Financial reasoning · Logic puzzles", icon: "🔢" },
-            { id: "s26", label: "Portuguese — Concurso Style", subtitle: "Official language · Text interpretation · Grammar · Formal writing", icon: "📖" },
-            { id: "s27", label: "Current Affairs & Geography", subtitle: "Brazilian current events · IBGE data · Geopolitics · Recent legislation", icon: "🌍" },
-            { id: "s28", label: "Logical Reasoning", subtitle: "Deductive reasoning · Sequences · Logical propositions · Problem solving", icon: "🧠" },
-            { id: "s29", label: "Exam-Specific Modules", subtitle: "CESPE · FCC · VUNESP formats · Question banks per banca", icon: "🎯" },
-        ],
-    },
-    {
-        id: "6", label: "Elementary", subtitle: "Ensino Fundamental · Years 1–9", icon: "✏️",
-        subjects: [
-            { id: "s30", label: "Mathematics Foundations", subtitle: "Numbers · Basic operations · Fractions · Intro to algebra · Basic geometry", icon: "🔢" },
-            { id: "s31", label: "Reading & Writing", subtitle: "Literacy · Text interpretation · Grammar basics · Spelling · Composition", icon: "📖" },
-            { id: "s32", label: "Science & Nature", subtitle: "Living things · Human body · Ecosystems · Simple experiments · Environment", icon: "🌱" },
-            { id: "s33", label: "History & Geography", subtitle: "Brazil history · World history · Maps · Brazilian regions · Citizenship", icon: "🌍" },
-            { id: "s34", label: "English Basics", subtitle: "Alphabet · Vocabulary · Numbers in English · Basic conversation phrases", icon: "🗣️" },
-            { id: "s35", label: "Gamified Learning", subtitle: "Story-based lessons · Badges · Reward system · Progress characters", icon: "🎮" },
-        ],
-    },
-];
+// ─── Icon fallback map ────────────────────────────────────────────────────────
+const CODE_ICON_MAP: Record<string, string> = {
+    ENEM_2026: "🎯",
+    HIGH_SCHOOL: "📚",
+    PRE_UNIVERSITY_PREP: "🏆",
+    COLLEGE_UNIVERSITY: "🎓",
+    PUBLIC_EXAMS: "📋",
+    ELEMENTARY_SCHOOL: "✏️",
+};
+const getIcon = (code: string) => CODE_ICON_MAP[code] ?? "🎓";
 
-type Level = typeof INITIAL_LEVELS[0];
+// ─── Local Level type (UI layer) ──────────────────────────────────────────────
+type Level = {
+    id: string;
+    code: string;
+    label: string;
+    subtitle: string;
+    icon: string;
+};
+
+// ─── Map API response → UI Level ─────────────────────────────────────────────
+const toLevel = (el: EducationLevel): Level => ({
+    id: el.id,
+    code: el.code,
+    label: el.name,
+    subtitle: el.description,
+    icon: el.imageUrl && el.imageUrl.startsWith("http") ? el.imageUrl : getIcon(el.code),
+});
+
+// ─── Modals ───────────────────────────────────────────────────────────────────
 
 const EditModal = ({
-    isOpen, initialLabel, initialSubtitle, initialIcon, onClose, onSubmit,
+    isOpen, initialLabel, initialSubtitle, initialIcon, onClose, onSubmit, loading,
 }: {
     isOpen: boolean; initialLabel: string; initialSubtitle: string;
-    initialIcon: string; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void;
+    initialIcon: string; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean;
 }) => {
     const [label, setLabel] = React.useState(initialLabel);
     const [subtitle, setSubtitle] = React.useState(initialSubtitle);
@@ -102,16 +64,20 @@ const EditModal = ({
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                    <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px]">
-                        {icon}
+                    <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px] overflow-hidden">
+                        {icon && icon.startsWith("http") ? (
+                            <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                        ) : (
+                            <span>{icon || "🎓"}</span>
+                        )}
                     </div>
                     <div>
-                        <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon (emoji)</label>
+                        <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon / URL</label>
                         <input
                             value={icon}
                             onChange={(e) => setIcon(e.target.value)}
                             className="w-[80px] h-[36px] text-center text-[20px] border border-gray-200 rounded-[10px] outline-none focus:border-[#0F3057]"
-                            placeholder="🎓"
+                            placeholder="🎓 or URL"
                         />
                     </div>
                 </div>
@@ -129,16 +95,18 @@ const EditModal = ({
                             placeholder="Enter subtitle" />
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 h-[44px] border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={() => onSubmit(label, subtitle, icon)} className="flex-1 h-[44px] bg-[#0F3057] text-white rounded-[12px] text-[14px] font-semibold hover:opacity-90">Save</button>
+                <div className="flex gap-3 w-full">
+                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <div className="flex-1">
+                        <Button onClick={() => onSubmit(label, subtitle, icon)} loading={loading} disabled={loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Save</Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-const DeleteModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; }) => {
+const DeleteModal = ({ isOpen, onClose, onConfirm, loading }: { isOpen: boolean; onClose: () => void; onConfirm: () => void; loading?: boolean; }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -149,15 +117,17 @@ const DeleteModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose:
                 <h3 className="text-[16px] font-semibold text-[#121212] text-center">Are you sure?</h3>
                 <p className="text-[13px] text-gray-500 text-center">This action cannot be undone.</p>
                 <div className="flex gap-3 w-full">
-                    <button onClick={onClose} className="flex-1 h-[44px] border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={onConfirm} className="flex-1 h-[44px] bg-red-500 text-white rounded-[12px] text-[14px] font-semibold hover:opacity-90">Delete</button>
+                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <div className="flex-1">
+                        <Button onClick={onConfirm} loading={loading} disabled={loading} style={{ height: "44px" }} className="w-full bg-red-500! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Delete</Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; }) => {
+const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean; }) => {
     const [label, setLabel] = React.useState("");
     const [subtitle, setSubtitle] = React.useState("");
     const [icon, setIcon] = React.useState("🎓");
@@ -179,16 +149,20 @@ const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () 
                 </div>
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px]">
-                            {icon || "🎓"}
+                        <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px] overflow-hidden">
+                            {icon && icon.startsWith("http") ? (
+                                <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                            ) : (
+                                <span>{icon || "🎓"}</span>
+                            )}
                         </div>
                         <div>
-                            <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon (emoji)</label>
+                            <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon / URL</label>
                             <input
                                 value={icon}
                                 onChange={(e) => setIcon(e.target.value)}
                                 className="w-[80px] h-[36px] text-center text-[20px] border border-gray-200 rounded-[10px] outline-none focus:border-[#0F3057]"
-                                placeholder="🎓"
+                                placeholder="🎓 or URL"
                             />
                         </div>
                     </div>
@@ -205,57 +179,120 @@ const AddModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () 
                             placeholder="e.g. School curriculum support" />
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 h-[44px] border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
-                    <button onClick={handleSubmit} disabled={!label.trim()} className="flex-1 h-[44px] bg-[#0F3057] text-white rounded-[12px] text-[14px] font-semibold hover:opacity-90 disabled:opacity-50">Add</button>
+                <div className="flex gap-3 w-full">
+                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+                    <div className="flex-1">
+                        <Button onClick={handleSubmit} loading={loading} disabled={!label.trim() || loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Add</Button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 const EducationLevelPage = () => {
-    const [levels, setLevels] = useState(INITIAL_LEVELS);
+    const [levels, setLevels] = useState<Level[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    const [selectedItem, setSelectedItem] = useState<Level | null>(null);
     const [showEdit, setShowEdit] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [addLoading, setAddLoading] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const handleEdit = (newLabel: string, newSubtitle: string, newIcon: string) => {
+    useEffect(() => {
+        fetchLevels();
+    }, []);
+
+    const fetchLevels = async () => {
+        try {
+            setLoading(true);
+            const data = await getEducationLevels();
+            const sorted = [...data.list].sort((a, b) => a.sortOrder - b.sortOrder);
+            setLevels(sorted.map(toLevel));
+        } catch {
+            message.error("Failed to load education levels");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEdit = async (newLabel: string, newSubtitle: string, newIcon: string) => {
         if (!selectedItem) return;
-        setLevels((prev) => prev.map((l) => l.id === selectedItem.id
-            ? { ...l, label: newLabel, subtitle: newSubtitle, icon: newIcon }
-            : l));
-        setShowEdit(false);
-        message.success("Updated successfully");
+        try {
+            setEditLoading(true);
+            await updateEducationLevel(selectedItem.id, {
+                code: selectedItem.code,
+                name: newLabel,
+                description: newSubtitle,
+                sortOrder: levels.indexOf(selectedItem) + 1,
+                imageUrl: newIcon.startsWith("http") ? newIcon : null,
+                status: "ENABLED",
+            });
+            setLevels((prev) => prev.map((l) => l.id === selectedItem.id
+                ? { ...l, label: newLabel, subtitle: newSubtitle, icon: newIcon }
+                : l));
+            setShowEdit(false);
+            message.success("Updated successfully");
+        } catch {
+            message.error("Failed to update education level");
+        } finally {
+            setEditLoading(false);
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!selectedItem) return;
-        setLevels((prev) => prev.filter((l) => l.id !== selectedItem.id));
-        setShowDelete(false);
-        message.success("Deleted successfully");
+        try {
+            setDeleteLoading(true);
+            await deleteEducationLevel(selectedItem.id);
+            setLevels((prev) => prev.filter((l) => l.id !== selectedItem.id));
+            setShowDelete(false);
+            message.success("Deleted successfully");
+        } catch {
+            message.error("Failed to delete education level");
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
-    const handleAdd = (label: string, subtitle: string, icon: string) => {
-        setLevels((prev) => [...prev, { id: Date.now().toString(), label, subtitle, icon, subjects: [] }]);
-        setShowAdd(false);
-        message.success("Added successfully");
-    };
-
-    const handleSubjectsChange = (subjects: any[]) => {
-        if (!selectedLevel) return;
-        setLevels((prev) => prev.map((l) => l.id === selectedLevel.id ? { ...l, subjects } : l));
+    const handleAdd = async (label: string, subtitle: string, icon: string) => {
+        try {
+            setAddLoading(true);
+            const created = await createEducationLevel({
+                code: label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""),
+                name: label,
+                description: subtitle,
+                sortOrder: levels.length + 1,
+                imageUrl: icon.startsWith("http") ? icon : null,
+                status: "ENABLED",
+            });
+            setLevels((prev) => [...prev, {
+                id: created.id,
+                code: created.code,
+                label,
+                subtitle,
+                icon,
+            }]);
+            setShowAdd(false);
+            message.success("Added successfully");
+        } catch {
+            message.error("Failed to add education level");
+        } finally {
+            setAddLoading(false);
+        }
     };
 
     if (selectedLevel) {
         return (
             <SubjectLevel
                 levelTitle="Subjects"
-                initialSubjects={selectedLevel.subjects}
+                educationLevelId={selectedLevel.id}
                 onBack={() => setSelectedLevel(null)}
-                onSubjectsChange={handleSubjectsChange}
             />
         );
     }
@@ -278,7 +315,11 @@ const EducationLevelPage = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-6 scrollbar">
-                        {levels.length === 0 ? (
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full w-full py-20">
+                                <Spin size="large" />
+                            </div>
+                        ) : levels.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-3">
                                 <PiGraduationCap className="text-gray-300 text-5xl" />
                                 <p className="text-[14px] text-gray-400">No education levels yet</p>
@@ -287,14 +328,18 @@ const EducationLevelPage = () => {
                             <div className="flex flex-col gap-3 py-3">
                                 {levels.map((level) => (
                                     <div
-                                        key={level.id}
+                                        key={level.id ?? `level-${Math.random()}`}
                                         onClick={() => setSelectedLevel(level)}
                                         className="flex items-center justify-between px-3 py-3 bg-white rounded-[20px] cursor-pointer hover:shadow-md transition-shadow"
                                         style={{ boxShadow: "0px 0px 4px 0px #00000040", minHeight: "76px" }}
                                     >
                                         <div className="flex items-center gap-4 min-w-0 flex-1">
                                             <div className="w-[52px] h-[52px] rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0 text-2xl overflow-hidden">
-                                                {level.icon}
+                                                {level.icon.startsWith("http") ? (
+                                                    <img src={level.icon} alt={level.label} className="w-full h-full object-cover rounded-2xl" />
+                                                ) : (
+                                                    <span>{level.icon}</span>
+                                                )}
                                             </div>
                                             <div className="min-w-0">
                                                 <h3 className="text-[17px] font-medium text-[#121212] truncate">{level.label}</h3>
@@ -332,9 +377,10 @@ const EducationLevelPage = () => {
                 initialIcon={selectedItem?.icon || ""}
                 onClose={() => setShowEdit(false)}
                 onSubmit={handleEdit}
+                loading={editLoading}
             />
-            <DeleteModal isOpen={showDelete} onClose={() => setShowDelete(false)} onConfirm={handleDelete} />
-            <AddModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} />
+            <DeleteModal isOpen={showDelete} onClose={() => setShowDelete(false)} onConfirm={handleDelete} loading={deleteLoading} />
+            <AddModal isOpen={showAdd} onClose={() => setShowAdd(false)} onSubmit={handleAdd} loading={addLoading} />
         </>
     );
 };
