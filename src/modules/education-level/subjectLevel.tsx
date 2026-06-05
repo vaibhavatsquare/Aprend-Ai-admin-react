@@ -5,7 +5,7 @@ import { message, Spin, Button } from "antd";
 import { FiEdit2, FiTrash2, FiPlus, FiX } from "react-icons/fi";
 import { GoArrowLeft } from "react-icons/go";
 import { PiGraduationCap } from "react-icons/pi";
-import { getSubjects, createSubject, updateSubject, deleteSubject, type Subject as ApiSubject } from "@/src/services/api/educationLevel.api";
+import { getSubjects, createSubject, updateSubject, deleteSubject, getUploadUrl, uploadFileToS3, type Subject as ApiSubject } from "@/src/services/api/educationLevel.api";
 
 const SUBJECT_ICON_MAP: Record<string, string> = {
     MATHEMATICS: "🔢",
@@ -56,6 +56,7 @@ const EditModal = ({
     const [label, setLabel] = React.useState(initialLabel);
     const [subtitle, setSubtitle] = React.useState(initialSubtitle);
     const [icon, setIcon] = React.useState(initialIcon);
+    const [iconLoading, setIconLoading] = React.useState(false);
 
     React.useEffect(() => {
         setLabel(initialLabel);
@@ -73,26 +74,46 @@ const EditModal = ({
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                    <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px] overflow-hidden">
-                        {icon && icon.startsWith("http") ? (
+                    <div
+                        className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-dashed border-gray-200 hover:border-[#0F3057] transition-colors"
+                        onClick={() => !iconLoading && document.getElementById("edit-subject-icon-input")?.click()}
+                    >
+                        {iconLoading ? (
+                            <Spin size="small" />
+                        ) : icon ? (
                             <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
                         ) : (
-                            <span>{icon || "📚"}</span>
+                            <div className="flex flex-col items-center justify-center gap-1">
+                                <FiPlus size={20} className="text-gray-400" />
+                                <span className="text-gray-400 text-[10px] text-center">Upload Image</span>
+                            </div>
                         )}
                     </div>
-                    <div>
-                        <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon / URL</label>
-                        <input
-                            value={icon}
-                            onChange={(e) => setIcon(e.target.value)}
-                            className="w-[80px] h-[36px] text-center text-[20px] border border-gray-200 rounded-[10px] outline-none focus:border-[#0F3057]"
-                            placeholder="📚 or URL"
-                        />
-                    </div>
+                    <input
+                        id="edit-subject-icon-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                                setIconLoading(true);
+                                const { preSignedUrl, outPutUrl } = await getUploadUrl(file.name);
+                                await uploadFileToS3(preSignedUrl, file);
+                                setIcon(outPutUrl);
+                            } catch {
+                                message.error("Failed to upload image");
+                            } finally {
+                                setIconLoading(false);
+                            }
+                        }}
+                    />
+                    <label className="text-[12px] text-gray-500">Icon Image</label>
                 </div>
                 <div className="flex flex-col gap-3">
                     <div>
-                        <label className="text-[12px] text-gray-500 mb-1 block">Label</label>
+                        <label className="text-[12px] text-gray-500 mb-1 block">Title</label>
                         <input value={label} onChange={(e) => setLabel(e.target.value)}
                             className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
                             placeholder="Enter label" autoFocus />
@@ -139,7 +160,8 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, loading }: { isOpen: boolean;
 const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean; }) => {
     const [label, setLabel] = React.useState("");
     const [subtitle, setSubtitle] = React.useState("");
-    const [icon, setIcon] = React.useState("📚");
+    const [icon, setIcon] = React.useState("");
+    const [iconLoading, setIconLoading] = React.useState(false);
 
     if (!isOpen) return null;
 
@@ -158,25 +180,45 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                 </div>
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center text-[48px] overflow-hidden">
-                            {icon && icon.startsWith("http") ? (
+                       <div
+                            className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-dashed border-gray-200 hover:border-[#0F3057] transition-colors"
+                            onClick={() => !iconLoading && document.getElementById("add-subject-icon-input")?.click()}
+                        >
+                            {iconLoading ? (
+                                <Spin size="small" />
+                            ) : icon ? (
                                 <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
                             ) : (
-                                <span>{icon || "📚"}</span>
+                                <div className="flex flex-col items-center justify-center gap-1">
+                                    <FiPlus size={20} className="text-gray-400" />
+                                    <span className="text-gray-400 text-[10px] text-center">Upload Image</span>
+                                </div>
                             )}
                         </div>
-                        <div>
-                            <label className="text-[12px] text-gray-500 mb-1 block text-center">Icon / URL</label>
-                            <input
-                                value={icon}
-                                onChange={(e) => setIcon(e.target.value)}
-                                className="w-[80px] h-[36px] text-center text-[20px] border border-gray-200 rounded-[10px] outline-none focus:border-[#0F3057]"
-                                placeholder="📚 or URL"
-                            />
-                        </div>
+                        <input
+                            id="add-subject-icon-input"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                    setIconLoading(true);
+                                    const { preSignedUrl, outPutUrl } = await getUploadUrl(file.name);
+                                    await uploadFileToS3(preSignedUrl, file);
+                                    setIcon(outPutUrl);
+                                } catch {
+                                    message.error("Failed to upload image");
+                                } finally {
+                                    setIconLoading(false);
+                                }
+                            }}
+                        />
+                        <label className="text-[12px] text-gray-500">Icon Image</label>
                     </div>
                     <div>
-                        <label className="text-[12px] text-gray-500 mb-1 block">Label *</label>
+                        <label className="text-[12px] text-gray-500 mb-1 block">Title</label>
                         <input value={label} onChange={(e) => setLabel(e.target.value)}
                             className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
                             placeholder="e.g. Mathematics" autoFocus />
@@ -220,6 +262,15 @@ const SubjectLevel = ({ levelTitle, educationLevelId, onBack }: SubjectLevelProp
         fetchSubjects();
     }, [educationLevelId]);
 
+    useEffect(() => {
+        window.history.pushState(null, "", window.location.href);
+        const handlePopState = () => {
+            onBack();
+        };
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, []);
+
     const fetchSubjects = async () => {
         try {
             setLoading(true);
@@ -246,9 +297,9 @@ const SubjectLevel = ({ levelTitle, educationLevelId, onBack }: SubjectLevelProp
                 educationLevelId,
                 code: selectedItem.id,
                 name: newLabel,
-                description: newSubtitle,
+                description: "",
                 imageUrl: newIcon.startsWith("http") ? newIcon : null,
-                topics: [],
+                topics: newSubtitle ? newSubtitle.split(" · ") : [],
                 moduleType: "Core",
                 sortOrder: subjects.indexOf(selectedItem) + 1,
                 status: "ENABLED",
@@ -287,9 +338,9 @@ const SubjectLevel = ({ levelTitle, educationLevelId, onBack }: SubjectLevelProp
                 educationLevelId,
                 code: label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""),
                 name: label,
-                description: subtitle,
+                description: "",
                 imageUrl: icon.startsWith("http") ? icon : null,
-                topics: [],
+                topics: subtitle ? subtitle.split(" · ") : [],
                 moduleType: "Core",
             });
             setSubjects((prev) => [...prev, {
@@ -346,7 +397,7 @@ const SubjectLevel = ({ levelTitle, educationLevelId, onBack }: SubjectLevelProp
                                         <div className="flex items-center gap-4 min-w-0 flex-1">
                                             <div className="w-[52px] h-[52px] rounded-2xl bg-gray-100 flex items-center justify-center flex-shrink-0 text-2xl overflow-hidden">
                                                 {item.icon.startsWith("http") ? (
-                                                    <img src={item.icon} alt={item.label} className="w-full h-full object-cover rounded-2xl" />
+                                                    <img src={item.icon} alt={item.label} className="w-[25px] h-[25px] object-contain" />
                                                 ) : (
                                                     <span>{item.icon}</span>
                                                 )}

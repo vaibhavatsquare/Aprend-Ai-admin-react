@@ -151,6 +151,30 @@ export const createSubject = async (payload: CreateSubjectPayload): Promise<Subj
     return res.json();
 };
 
+export interface UploadFileResponse {
+    preSignedUrl: string;
+    outPutUrl: string;
+}
+
+export const getUploadUrl = async (fileName: string): Promise<UploadFileResponse> => {
+    const res = await fetch(`${BASE_URL}/upload/upload-file`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ fileName, type: "image" }),
+    });
+    if (!res.ok) throw new Error("Failed to get upload URL");
+    return res.json();
+};
+
+export const uploadFileToS3 = async (preSignedUrl: string, file: File): Promise<void> => {
+    const res = await fetch(preSignedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+    });
+    if (!res.ok) throw new Error("Failed to upload file");
+};
+
 export const getEducationLevels = async (): Promise<GetEducationLevelsResponse> => {
     const res = await fetch(`${BASE_URL}/Admin/education-levels`, {
         method: "GET",
