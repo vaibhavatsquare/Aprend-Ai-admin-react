@@ -34,6 +34,17 @@ export interface GetEducationLevelsResponse {
 
 export interface CreateEducationLevelPayload {
     code: string;
+    language: string;
+    name: string;
+    description: string;
+    imageUrl: string | null;
+    ageRange: string;
+    sortOrder: number;
+    status: "ENABLED" | "DISABLED";
+};
+
+export interface UpdateEducationLevelPayload {
+    code: string;
     name: string;
     description: string;
     sortOrder: number;
@@ -49,7 +60,7 @@ export const deleteEducationLevel = async (id: string): Promise<void> => {
     if (!res.ok) throw new Error("Failed to delete education level");
 };
 
-export const updateEducationLevel = async (id: string, payload: CreateEducationLevelPayload): Promise<EducationLevel> => {
+export const updateEducationLevel = async (id: string, payload: UpdateEducationLevelPayload): Promise<EducationLevel> => {
     const res = await fetch(`${BASE_URL}/Admin/education-levels/${id}`, {
         method: "PATCH",
         headers: getAuthHeaders(),

@@ -86,20 +86,20 @@ const EditModal = ({
                         accept="image/*"
                         className="hidden"
                         onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                try {
-                                    setIconLoading(true);
-                                    const { preSignedUrl, outPutUrl } = await getUploadUrl(file.name);
-                                    await uploadFileToS3(preSignedUrl, file);
-                                    setIcon(outPutUrl);
-                                } catch {
-                                    message.error("Failed to upload image");
-                                } finally {
-                                    setIconLoading(false);
-                                }
-                            }}
-                        />
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                                setIconLoading(true);
+                                const { preSignedUrl, outPutUrl } = await getUploadUrl(file.name);
+                                await uploadFileToS3(preSignedUrl, file);
+                                setIcon(outPutUrl);
+                            } catch {
+                                message.error("Failed to upload image");
+                            } finally {
+                                setIconLoading(false);
+                            }
+                        }}
+                    />
                     <label className="text-[12px] text-gray-500">Icon Image</label>
                 </div>
                 <div className="flex flex-col gap-3">
@@ -148,18 +148,19 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, loading }: { isOpen: boolean;
     );
 };
 
-const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean; }) => {
+const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string, ageRange: string) => void; loading?: boolean; }) => {
     const [label, setLabel] = React.useState("");
     const [subtitle, setSubtitle] = React.useState("");
     const [icon, setIcon] = React.useState("");
     const [iconLoading, setIconLoading] = React.useState(false);
+    const [ageRange, setAgeRange] = React.useState("");
 
     if (!isOpen) return null;
 
     const handleSubmit = () => {
         if (!label.trim()) return;
-        onSubmit(label, subtitle, icon);
-        setLabel(""); setSubtitle(""); setIcon("");
+        onSubmit(label, subtitle, icon, ageRange);
+        setLabel(""); setSubtitle(""); setIcon(""); setAgeRange("");
     };
 
     return (
@@ -219,6 +220,12 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                         <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)}
                             className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
                             placeholder="e.g. School curriculum support" />
+                    </div>
+                    <div>
+                        <label className="text-[12px] text-gray-500 mb-1 block">Age Range</label>
+                        <input value={ageRange} onChange={(e) => setAgeRange(e.target.value)}
+                            className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                            placeholder="e.g. 14-18" />
                     </div>
                 </div>
                 <div className="flex gap-3 w-full">
@@ -302,18 +309,20 @@ const EducationLevelPage = () => {
         }
     };
 
-    const handleAdd = async (label: string, subtitle: string, icon: string) => {
+    const handleAdd = async (label: string, subtitle: string, icon: string, ageRange: string) => {
         try {
             setAddLoading(true);
             const created = await createEducationLevel({
                 code: label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""),
+                language: "ENGLISH",
                 name: label,
                 description: subtitle,
                 sortOrder: levels.length + 1,
                 imageUrl: icon.startsWith("http") ? icon : null,
+                ageRange: ageRange || "",
                 status: "ENABLED",
             });
-           console.log("created:", created);
+            console.log("created:", created);
             setLevels((prev) => [...prev, {
                 id: created.id,
                 code: created.code,
