@@ -85,7 +85,7 @@ const EditModal = ({
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-1">
                                 <FiPlus size={20} className="text-gray-400" />
-                                <span className="text-gray-400 text-[10px] text-center">Upload Image</span>
+                                <span className="text-gray-400 text-[10px] text-center"></span>
                             </div>
                         )}
                     </div>
@@ -191,7 +191,7 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-1">
                                     <FiPlus size={20} className="text-gray-400" />
-                                    <span className="text-gray-400 text-[10px] text-center">Upload Image</span>
+                                    <span className="text-gray-400 text-[10px] text-center"></span>
                                 </div>
                             )}
                         </div>

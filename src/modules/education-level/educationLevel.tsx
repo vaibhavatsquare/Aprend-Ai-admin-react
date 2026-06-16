@@ -25,6 +25,7 @@ type Level = {
     label: string;
     subtitle: string;
     icon: string;
+    ageRange: string;
 };
 
 // ─── Map API response → UI Level ─────────────────────────────────────────────
@@ -34,26 +35,31 @@ const toLevel = (el: EducationLevel): Level => ({
     label: el.name,
     subtitle: el.description,
     icon: el.imageUrl && el.imageUrl.startsWith("http") ? el.imageUrl : getIcon(el.code),
+    ageRange: el.ageRange ?? "",
 });
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
 const EditModal = ({
-    isOpen, initialLabel, initialSubtitle, initialIcon, onClose, onSubmit, loading,
+    isOpen, initialLabel, initialSubtitle, initialIcon, initialAgeRange, onClose, onSubmit, loading,
 }: {
     isOpen: boolean; initialLabel: string; initialSubtitle: string;
-    initialIcon: string; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string) => void; loading?: boolean;
+    initialIcon: string; initialAgeRange: string; onClose: () => void; onSubmit: (label: string, subtitle: string, icon: string, ageRange: string) => void; loading?: boolean;
 }) => {
     const [label, setLabel] = React.useState(initialLabel);
     const [subtitle, setSubtitle] = React.useState(initialSubtitle);
     const [icon, setIcon] = React.useState(initialIcon);
     const [iconLoading, setIconLoading] = React.useState(false);
+    const [minAge, setMinAge] = React.useState(initialAgeRange?.split("-")[0] ?? "");
+    const [maxAge, setMaxAge] = React.useState(initialAgeRange?.split("-")[1] ?? "");
 
     React.useEffect(() => {
         setLabel(initialLabel);
         setSubtitle(initialSubtitle);
         setIcon(initialIcon);
-    }, [initialLabel, initialSubtitle, initialIcon, isOpen]);
+        setMinAge(initialAgeRange?.split("-")[0] ?? "");
+        setMaxAge(initialAgeRange?.split("-")[1] ?? "");
+    }, [initialLabel, initialSubtitle, initialIcon, initialAgeRange, isOpen]);
 
     if (!isOpen) return null;
 
@@ -76,7 +82,7 @@ const EditModal = ({
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-1">
                                 <FiPlus size={20} className="text-gray-400" />
-                                <span className="text-gray-400 text-[10px] text-center">Upload Image</span>
+                                <span className="text-gray-400 text-[10px] text-center"></span>
                             </div>
                         )}
                     </div>
@@ -115,11 +121,41 @@ const EditModal = ({
                             className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
                             placeholder="Enter subtitle" />
                     </div>
+                    <div>
+                        <label className="text-[12px] text-gray-500 mb-1 block">Age Range</label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                value={minAge}
+                                onChange={(e) => setMinAge(e.target.value)}
+                                className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                                placeholder="Min age"
+                                min={1}
+                            />
+                            <span className="text-gray-400 text-sm">to</span>
+                            <input
+                                type="number"
+                                value={maxAge}
+                                onChange={(e) => setMaxAge(e.target.value)}
+                                className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                                placeholder="Max age"
+                                min={1}
+                            />
+                        </div>
+                    </div>
                 </div>
                 <div className="flex gap-3 w-full">
                     <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
                     <div className="flex-1">
-                        <Button onClick={() => onSubmit(label, subtitle, icon)} loading={loading} disabled={loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Save</Button>
+                        <Button
+                            onClick={() => onSubmit(label, subtitle, icon, `${minAge}-${maxAge}`)}
+                            loading={loading}
+                            disabled={loading || !label.trim() || !minAge || !maxAge}
+                            style={{ height: "44px" }}
+                            className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold"
+                        >
+                            Save
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -153,14 +189,15 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
     const [subtitle, setSubtitle] = React.useState("");
     const [icon, setIcon] = React.useState("");
     const [iconLoading, setIconLoading] = React.useState(false);
-    const [ageRange, setAgeRange] = React.useState("");
+    const [minAge, setMinAge] = React.useState("");
+    const [maxAge, setMaxAge] = React.useState("");
 
     if (!isOpen) return null;
 
     const handleSubmit = () => {
-        if (!label.trim()) return;
-        onSubmit(label, subtitle, icon, ageRange);
-        setLabel(""); setSubtitle(""); setIcon(""); setAgeRange("");
+        if (!label.trim() || !minAge || !maxAge) return;
+        onSubmit(label, subtitle, icon, `${minAge}-${maxAge}`);
+        setLabel(""); setSubtitle(""); setIcon(""); setMinAge(""); setMaxAge("");
     };
 
     return (
@@ -183,7 +220,7 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-1">
                                     <FiPlus size={20} className="text-gray-400" />
-                                    <span className="text-gray-400 text-[10px] text-center">Upload Image</span>
+                                    <span className="text-gray-400 text-[10px] text-center"></span>
                                 </div>
                             )}
                         </div>
@@ -223,15 +260,39 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                     </div>
                     <div>
                         <label className="text-[12px] text-gray-500 mb-1 block">Age Range</label>
-                        <input value={ageRange} onChange={(e) => setAgeRange(e.target.value)}
-                            className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
-                            placeholder="e.g. 14-18" />
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                value={minAge}
+                                onChange={(e) => setMinAge(e.target.value)}
+                                className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                                placeholder="Min age"
+                                min={1}
+                            />
+                            <span className="text-gray-400 text-sm">to</span>
+                            <input
+                                type="number"
+                                value={maxAge}
+                                onChange={(e) => setMaxAge(e.target.value)}
+                                className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                                placeholder="Max age"
+                                min={1}
+                            />
+                        </div>
                     </div>
                 </div>
                 <div className="flex gap-3 w-full">
                     <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
                     <div className="flex-1">
-                        <Button onClick={handleSubmit} loading={loading} disabled={!label.trim() || loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Add</Button>
+                        <Button
+                            onClick={handleSubmit}
+                            loading={loading}
+                            disabled={!label.trim() || !minAge || !maxAge || loading}
+                            style={{ height: "44px" }}
+                            className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold"
+                        >
+                            Add
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -270,7 +331,7 @@ const EducationLevelPage = () => {
         }
     };
 
-    const handleEdit = async (newLabel: string, newSubtitle: string, newIcon: string) => {
+    const handleEdit = async (newLabel: string, newSubtitle: string, newIcon: string, newAgeRange: string) => {
         if (!selectedItem) return;
         try {
             setEditLoading(true);
@@ -280,10 +341,11 @@ const EducationLevelPage = () => {
                 description: newSubtitle,
                 sortOrder: levels.indexOf(selectedItem) + 1,
                 imageUrl: newIcon.startsWith("http") ? newIcon : null,
+                ageRange: newAgeRange,
                 status: "ENABLED",
             });
             setLevels((prev) => prev.map((l) => l.id === selectedItem.id
-                ? { ...l, label: newLabel, subtitle: newSubtitle, icon: newIcon }
+                ? { ...l, label: newLabel, subtitle: newSubtitle, icon: newIcon, ageRange: newAgeRange }
                 : l));
             setShowEdit(false);
             message.success("Updated successfully");
@@ -322,13 +384,13 @@ const EducationLevelPage = () => {
                 ageRange: ageRange || "",
                 status: "ENABLED",
             });
-            console.log("created:", created);
             setLevels((prev) => [...prev, {
                 id: created.id,
                 code: created.code,
                 label,
                 subtitle,
                 icon,
+                ageRange,
             }]);
             setShowAdd(false);
             message.success("Added successfully");
@@ -427,6 +489,7 @@ const EducationLevelPage = () => {
                 initialLabel={selectedItem?.label || ""}
                 initialSubtitle={selectedItem?.subtitle || ""}
                 initialIcon={selectedItem?.icon || ""}
+                initialAgeRange={selectedItem?.ageRange || ""}
                 onClose={() => setShowEdit(false)}
                 onSubmit={handleEdit}
                 loading={editLoading}

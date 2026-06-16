@@ -130,7 +130,7 @@ export interface NotificationsResponse {
   list: {
     total: number;
     list: Notification[];
-    hasMany: boolean;
+    hasMany: boolean;   
     count: number;
   };
 }

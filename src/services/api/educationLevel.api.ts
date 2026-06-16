@@ -17,6 +17,7 @@ export interface EducationLevel {
     description: string;
     sortOrder: number;
     imageUrl: string | null;
+    ageRange: string | null;
     status: "ENABLED" | "DISABLED";
     isDeleted: boolean;
     createdAt: string;
@@ -49,6 +50,7 @@ export interface UpdateEducationLevelPayload {
     description: string;
     sortOrder: number;
     imageUrl: string | null;
+    ageRange: string;
     status: "ENABLED" | "DISABLED";
 }
 

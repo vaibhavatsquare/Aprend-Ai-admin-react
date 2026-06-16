@@ -500,7 +500,7 @@ const poppins = Poppins({
   subsets: ["latin"],
 });
 
-const NOTIF_PAGE_SIZE = 3;
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatValue = (value: number, currency?: string) => {
@@ -565,26 +565,33 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [charts, setCharts] = useState<DashboardCharts | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [visibleCount, setVisibleCount] = useState(NOTIF_PAGE_SIZE);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const notifScrollRef = useRef<HTMLDivElement>(null);
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const TAKE = 10;
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
+    setNotifications([]);     // ← reset on refresh
+    setSkip(0);
+    setHasMore(true);
     try {
       const [statsData, chartsData, notifData] = await Promise.all([
         getDashboardStats(),
         getDashboardCharts(),
-        getNotifications(),
+        getNotifications(0, TAKE),
       ]);
       setStats(statsData);
       setCharts(chartsData);
       setNotifications(notifData.list.list);
       setUnreadCount(notifData.unreadCount);
-      setVisibleCount(NOTIF_PAGE_SIZE); // reset pagination on refresh
+      setSkip(TAKE);
+      setHasMore(notifData.list.hasMany);
     } catch (err: any) {
       setError(err?.message || "Failed to load dashboard data.");
     } finally {
@@ -595,14 +602,25 @@ const AdminDashboard = () => {
   useEffect(() => { fetchData(); }, []);
 
   // Infinite scroll — load more when near bottom
-  const handleNotifScroll = useCallback(() => {
+  const handleNotifScroll = useCallback(async () => {
     const el = notifScrollRef.current;
-    if (!el) return;
+    if (!el || !hasMore || loadingMore) return;
+
     const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-    if (nearBottom && visibleCount < notifications.length) {
-      setVisibleCount((prev) => Math.min(prev + NOTIF_PAGE_SIZE, notifications.length));
+    if (!nearBottom) return;
+
+    setLoadingMore(true);
+    try {
+      const data = await getNotifications(skip, TAKE);
+      setNotifications((prev) => [...prev, ...data.list.list]);
+      setSkip((prev) => prev + TAKE);
+      setHasMore(data.list.hasMany);
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingMore(false);
     }
-  }, [visibleCount, notifications.length]);
+  }, [hasMore, loadingMore, skip]);
 
   useEffect(() => {
     const el = notifScrollRef.current;
@@ -637,8 +655,7 @@ const AdminDashboard = () => {
   };
 
   // Visible slice of notifications
-  const visibleNotifications = notifications.slice(0, visibleCount);
-  const hasMore = visibleCount < notifications.length;
+
 
   // Summary cards config
   const summaryCards = stats ? [
@@ -839,7 +856,7 @@ const AdminDashboard = () => {
               </div>
             ) : (
               <>
-                {visibleNotifications.map((notif) => (
+                {notifications.map((notif) => (
                   <div
                     key={notif.id}
                     onClick={() => handleMarkOneRead(notif)}
@@ -858,10 +875,16 @@ const AdminDashboard = () => {
                 ))}
 
                 {/* Load more indicator */}
-                {hasMore && (
+                 {hasMore && (
                   <div className="flex items-center justify-center py-2">
-                    <p className="text-[10px] text-gray-400 animate-pulse">Scroll for more...</p>
+                    {loadingMore
+                      ? <Spin size="small" />
+                      : <p className="text-[10px] text-gray-400 animate-pulse">Scroll for more...</p>
+                    }
                   </div>
+                )}
+                {!hasMore && notifications.length > 0 && (
+                  <p className="text-[10px] text-gray-300 text-center py-2">All caught up</p>
                 )}
 
               </>
