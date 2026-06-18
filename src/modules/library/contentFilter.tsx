@@ -60,13 +60,6 @@ export default function ContentFilter({
     return (
         <div className="flex gap-4">
 
-            <Select
-                value={subject}
-                placeholder="All Subjects"
-                style={{ width: 220 }}
-                onChange={setSubject}
-                options={subjectOptions}
-            />
 
             <Select
                 value={level}
@@ -75,6 +68,15 @@ export default function ContentFilter({
                 onChange={setLevel}
                 options={levelOptions}
             />
+            <Select
+                value={subject}
+                placeholder="All Subjects"
+                style={{ width: 220 }}
+                onChange={setSubject}
+                options={subjectOptions}
+            />
+
+            
 
         </div>
     );

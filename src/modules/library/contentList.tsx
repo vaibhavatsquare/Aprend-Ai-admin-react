@@ -119,14 +119,22 @@ export default function ContentList({
         }
     };
 
+    const formatLabel = (val: string) =>
+        val
+            ?.split("_")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .join(" ") || "—";
+
     const columns = [
         {
             title: "Subject",
             dataIndex: "subject",
+            render: (val: string) => formatLabel(val),
         },
         {
             title: "Education Level",
             dataIndex: "educationLevel",
+            render: (val: string) => formatLabel(val),
         },
         {
             title: "Name",

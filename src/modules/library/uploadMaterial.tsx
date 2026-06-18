@@ -245,7 +245,11 @@ export default function UploadMaterialModal({ open, onClose, refresh }: any) {
             try {
                 setLevelsLoading(true);
                 const res = await getEducationLevels();
-                setLevelOptions(res.list.map((l) => ({ label: l.name, value: l.id })));
+                setLevelOptions(
+                    res.list
+                        .sort((a, b) => a.sortOrder - b.sortOrder)
+                        .map((l) => ({ label: l.name, value: l.id }))
+                );
             } catch {
                 message.error("Failed to load education levels");
             } finally {
