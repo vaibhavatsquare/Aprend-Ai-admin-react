@@ -494,6 +494,8 @@ import {
 import {
   DashboardStats, DashboardCharts, Notification,
 } from "@/src/libs/types/dashboard.types";
+import NetworkError from "@/src/components/errors/NetworkError";
+import { ErrorType } from "@/src/libs/errorTypes";
 
 const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700"],
@@ -567,7 +569,8 @@ const AdminDashboard = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorType | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const notifScrollRef = useRef<HTMLDivElement>(null);
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -593,7 +596,9 @@ const AdminDashboard = () => {
       setSkip(TAKE);
       setHasMore(notifData.list.hasMany);
     } catch (err: any) {
-      setError(err?.message || "Failed to load dashboard data.");
+      const errorType: ErrorType = err?.type || ErrorType.UNKNOWN;
+      setError(errorType);
+      console.error("Dashboard error:", err);
     } finally {
       setLoading(false);
     }
@@ -638,6 +643,12 @@ const AdminDashboard = () => {
     } catch {
       // silently fail
     }
+  };
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    await fetchData();
+    setRetrying(false);
   };
 
   // Mark single notification as read on click
@@ -699,15 +710,12 @@ const AdminDashboard = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full w-full gap-3">
-        <FiAlertCircle className="text-red-400 text-4xl" />
-        <p className="text-sm text-[#555555]">{error}</p>
-        <button
-          onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0F3057] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          <FiRefreshCw className="text-sm" /> Retry
-        </button>
+      <div className={`${poppins.className} h-full overflow-y-auto scrollbar bg-[#F8FAFC] px-6 py-5`}>
+        <NetworkError 
+          errorType={error} 
+          onRetry={handleRetry}
+          isRetrying={retrying}
+        />
       </div>
     );
   }
@@ -722,7 +730,7 @@ const AdminDashboard = () => {
           <p className="text-xs text-[#555555] mt-0.5">Welcome back, Admin — here's what's happening today.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={fetchData} className="text-[#555555] hover:text-[#0F3057] transition-colors" title="Refresh">
+          <button onClick={handleRetry} className="text-[#555555] hover:text-[#0F3057] transition-colors" title="Refresh">
             <FiRefreshCw className="text-base" />
           </button>
           <Badge count={unreadCount} size="small">

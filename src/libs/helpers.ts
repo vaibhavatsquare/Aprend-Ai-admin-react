@@ -5,6 +5,8 @@ import { app } from "../configs/firebase.config";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { removeCookie, setCookie } from "../services/coockies/coockie.service";
 import { AdminDetail } from "./types/admin";
+import { ErrorType, createNetworkError } from "./errorTypes";
+import { isNetworkAvailable } from "../hooks/useNetworkStatus";
 
 // Axios instance
 let axiosInstance: AxiosInstance | null = null;
@@ -32,6 +34,7 @@ export const waitForAuthState = (): Promise<User | null> => {
 const createAxiosInstance = async (): Promise<AxiosInstance> => {
     return axios.create({
         baseURL: process.env.NEXT_API_ENDPOINT || "",
+        timeout: 15000,
     });
 };
 
@@ -41,10 +44,13 @@ const fetchIdToken = async (): Promise<string> => {
     const user = auth.currentUser;
 
     if (!user) {
-        throw new Error("User is not authenticated. Please log in.");
+        throw createNetworkError(
+            ErrorType.AUTH_FAILED,
+            "User is not authenticated. Please log in."
+        );
     }
 
-    return await user.getIdToken(false); // Force refresh the token
+    return await user.getIdToken(false);
 };
 
 // Create or return the Axios instance
@@ -62,24 +68,55 @@ const API = async (force = false): Promise<AxiosInstance> => {
 };
 
 // API call wrapper with token refresh and retry logic
+const classifyError = (error: any): ErrorType => {
+    if (!error.response) {
+        if (error.code === "ECONNABORTED") return ErrorType.TIMEOUT;
+        if (!isNetworkAvailable()) return ErrorType.NETWORK_UNAVAILABLE;
+        if (error.code === "ECONNREFUSED") return ErrorType.CONNECTION_REFUSED;
+        if (error.code === "ENOTFOUND" || error.message?.includes("getaddrinfo")) return ErrorType.DNS_RESOLUTION_FAILED;
+        if (error.message?.includes("Network") || error.message?.includes("NETWORK")) return ErrorType.NETWORK_UNAVAILABLE;
+        return ErrorType.UNKNOWN;
+    }
+
+    const status = error.response?.status;
+    if (status === 401) return ErrorType.UNAUTHORIZED;
+    if (status === 403) return ErrorType.FORBIDDEN;
+    if (status === 404) return ErrorType.NOT_FOUND;
+    if (status === 400) return ErrorType.BAD_REQUEST;
+    if (status === 429) return ErrorType.RATE_LIMITED;
+    if (status === 503) return ErrorType.SERVICE_UNAVAILABLE;
+    if (status >= 500) return ErrorType.SERVER_ERROR;
+
+    return ErrorType.UNKNOWN;
+};
+
+const extractErrorMessage = (error: any): string => {
+    if (error?.response?.data?.message) return error.response.data.message;
+    if (error?.message) return error.message;
+    return "An unexpected error occurred";
+};
+
 const fetch = async <T>(config: AxiosRequestConfig): Promise<T> => {
     try {
+        if (!isNetworkAvailable()) {
+            throw createNetworkError(ErrorType.NETWORK_UNAVAILABLE, "No internet connection. Please check your network.");
+        }
+
         const axios = await API();
         const auth = getAuth();
         const user = auth.currentUser;
+
         if (user) {
             const idToken = await fetchIdToken();
             setCookie("adminToken", idToken);
-            console.log("🟢 adminToken:", idToken);
-            config.headers = {
-                Authorization: `Bearer ${idToken}`,
-            }
+            console.log("🟢 adminToken set");
+            config.headers = { Authorization: `Bearer ${idToken}` };
         }
+
         const response: AxiosResponse<T> = await axios.request<T>({
             ...config,
             paramsSerializer: (params) => {
                 const searchParams = new URLSearchParams();
-
                 Object.entries(params).forEach(([key, value]) => {
                     if (Array.isArray(value)) {
                         value.forEach((v) => searchParams.append(key, v));
@@ -87,41 +124,31 @@ const fetch = async <T>(config: AxiosRequestConfig): Promise<T> => {
                         searchParams.append(key, value as string);
                     }
                 });
-
                 return searchParams.toString();
             },
         });
+
         return response.data;
     } catch (error: any) {
-        if (error.response?.status === 401) {
+        const errorType = classifyError(error);
+        const errorMessage = extractErrorMessage(error);
+
+        if (errorType === ErrorType.UNAUTHORIZED) {
             try {
-                // Handle token expiration by refreshing the token
+                console.log("🔑 Token expired, refreshing...");
                 const newToken = await fetchIdToken();
                 setCookie("adminToken", newToken);
-                // Update the headers with the new token
-                config.headers = {
-                    ...config.headers,
-                    Authorization: `Bearer ${newToken}`,
-                };
+                config.headers = { ...config.headers, Authorization: `Bearer ${newToken}` };
 
-                // Retry the request with the updated token
                 const axios = await API(true);
                 const response: AxiosResponse<T> = await axios.request<T>(config);
                 return response.data;
             } catch (refreshError: any) {
-                if (refreshError?.response?.data?.message) {
-                    throw new Error(refreshError.response.data.message);
-                } else {
-                    throw new Error("Token refresh failed.");
-                }
-            }
-        } else {
-            if (error?.response?.data?.message) {
-                throw new Error(error.response.data.message);
-            } else {
-                throw new Error("Bad response from server");
+                throw createNetworkError(ErrorType.AUTH_FAILED, extractErrorMessage(refreshError), 401, refreshError);
             }
         }
+
+        throw createNetworkError(errorType, errorMessage, error?.response?.status, error);
     }
 };
 

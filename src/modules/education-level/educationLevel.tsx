@@ -68,7 +68,7 @@ const EditModal = ({
             <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col gap-4 shadow-xl">
                 <div className="flex items-center justify-between">
                     <h3 className="text-[16px] font-semibold text-[#121212]">Edit Education Level</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
+<button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <div
@@ -78,11 +78,15 @@ const EditModal = ({
                         {iconLoading ? (
                             <Spin size="small" />
                         ) : icon ? (
-                            <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                            icon.startsWith("http") ? (
+                                <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                            ) : (
+                                <div className="text-4xl flex items-center justify-center">{icon}</div>
+                            )
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-1">
                                 <FiPlus size={20} className="text-gray-400" />
-                                <span className="text-gray-400 text-[10px] text-center"></span>
+                                <span className="text-gray-400 text-[10px] text-center">Upload</span>
                             </div>
                         )}
                     </div>
@@ -191,13 +195,48 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
     const [iconLoading, setIconLoading] = React.useState(false);
     const [minAge, setMinAge] = React.useState("");
     const [maxAge, setMaxAge] = React.useState("");
+    const [errors, setErrors] = React.useState<{ title?: string; minAge?: string; maxAge?: string; ageRange?: string }>({});
+
+    // Clear form when modal closes
+    React.useEffect(() => {
+        if (!isOpen) {
+            setLabel("");
+            setSubtitle("");
+            setIcon("");
+            setMinAge("");
+            setMaxAge("");
+            setErrors({});
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
+    const validateForm = () => {
+        const newErrors: { title?: string; minAge?: string; maxAge?: string; ageRange?: string } = {};
+        
+        if (!label.trim()) {
+            newErrors.title = "Title is required";
+        }
+        if (!minAge) {
+            newErrors.minAge = "Min age is required";
+        }
+        if (!maxAge) {
+            newErrors.maxAge = "Max age is required";
+        }
+        
+        // Check if minAge > maxAge
+        if (minAge && maxAge && parseInt(minAge) > parseInt(maxAge)) {
+            newErrors.ageRange = "Min age cannot be greater than max age";
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = () => {
-        if (!label.trim() || !minAge || !maxAge) return;
+        if (!validateForm()) return;
         onSubmit(label, subtitle, icon, `${minAge}-${maxAge}`);
-        setLabel(""); setSubtitle(""); setIcon(""); setMinAge(""); setMaxAge("");
+        setLabel(""); setSubtitle(""); setIcon(""); setMinAge(""); setMaxAge(""); setErrors({});
     };
 
     return (
@@ -216,11 +255,15 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                             {iconLoading ? (
                                 <Spin size="small" />
                             ) : icon ? (
-                                <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                                icon.startsWith("http") ? (
+                                    <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                                ) : (
+                                    <div className="text-4xl flex items-center justify-center">{icon}</div>
+                                )
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-1">
                                     <FiPlus size={20} className="text-gray-400" />
-                                    <span className="text-gray-400 text-[10px] text-center"></span>
+                                    <span className="text-gray-400 text-[10px] text-center">Upload</span>
                                 </div>
                             )}
                         </div>
@@ -248,9 +291,10 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                     </div>
                     <div>
                         <label className="text-[12px] text-gray-500 mb-1 block">Title</label>
-                        <input value={label} onChange={(e) => setLabel(e.target.value)}
-                            className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                        <input value={label} onChange={(e) => { setLabel(e.target.value); setErrors(prev => ({ ...prev, title: "" })); }}
+                            className={`w-full h-[44px] px-3 border rounded-[10px] text-[14px] outline-none focus:border-[#0F3057] ${errors.title ? "border-red-500" : "border-gray-200"}`}
                             placeholder="e.g. High School" autoFocus />
+                        {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
                     </div>
                     <div>
                         <label className="text-[12px] text-gray-500 mb-1 block">Subtitle</label>
@@ -261,33 +305,40 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                     <div>
                         <label className="text-[12px] text-gray-500 mb-1 block">Age Range</label>
                         <div className="flex items-center gap-2">
-                            <input
-                                type="number"
-                                value={minAge}
-                                onChange={(e) => setMinAge(e.target.value)}
-                                className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
-                                placeholder="Min age"
-                                min={1}
-                            />
+                            <div className="w-full">
+                                <input
+                                    type="number"
+                                    value={minAge}
+                                    onChange={(e) => { setMinAge(e.target.value); setErrors(prev => ({ ...prev, minAge: "", ageRange: "" })); }}
+                                    className={`w-full h-[44px] px-3 border rounded-[10px] text-[14px] outline-none focus:border-[#0F3057] ${errors.minAge || errors.ageRange ? "border-red-500" : "border-gray-200"}`}
+                                    placeholder="Min age"
+                                    min={1}
+                                />
+                                {errors.minAge && <p className="text-red-500 text-xs mt-1">{errors.minAge}</p>}
+                            </div>
                             <span className="text-gray-400 text-sm">to</span>
-                            <input
-                                type="number"
-                                value={maxAge}
-                                onChange={(e) => setMaxAge(e.target.value)}
-                                className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
-                                placeholder="Max age"
-                                min={1}
-                            />
+                            <div className="w-full">
+                                <input
+                                    type="number"
+                                    value={maxAge}
+                                    onChange={(e) => { setMaxAge(e.target.value); setErrors(prev => ({ ...prev, maxAge: "", ageRange: "" })); }}
+                                    className={`w-full h-[44px] px-3 border rounded-[10px] text-[14px] outline-none focus:border-[#0F3057] ${errors.maxAge || errors.ageRange ? "border-red-500" : "border-gray-200"}`}
+                                    placeholder="Max age"
+                                    min={1}
+                                />
+                                {errors.maxAge && <p className="text-red-500 text-xs mt-1">{errors.maxAge}</p>}
+                            </div>
                         </div>
+                        {errors.ageRange && <p className="text-red-500 text-xs mt-1">{errors.ageRange}</p>}
                     </div>
                 </div>
                 <div className="flex gap-3 w-full">
-                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+<button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
                     <div className="flex-1">
                         <Button
                             onClick={handleSubmit}
                             loading={loading}
-                            disabled={!label.trim() || !minAge || !maxAge || loading}
+                            disabled={loading}
                             style={{ height: "44px" }}
                             className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold"
                         >
@@ -374,8 +425,9 @@ const EducationLevelPage = () => {
     const handleAdd = async (label: string, subtitle: string, icon: string, ageRange: string) => {
         try {
             setAddLoading(true);
-            const created = await createEducationLevel({
-                code: label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, ""),
+            const code = label.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_|_$/g, "");
+            await createEducationLevel({
+                code: code,
                 language: "ENGLISH",
                 name: label,
                 description: subtitle,
@@ -384,14 +436,8 @@ const EducationLevelPage = () => {
                 ageRange: ageRange || "",
                 status: "ENABLED",
             });
-            setLevels((prev) => [...prev, {
-                id: created.id,
-                code: created.code,
-                label,
-                subtitle,
-                icon,
-                ageRange,
-            }]);
+            // Refetch all levels to ensure consistency
+            await fetchLevels();
             setShowAdd(false);
             message.success("Added successfully");
         } catch {

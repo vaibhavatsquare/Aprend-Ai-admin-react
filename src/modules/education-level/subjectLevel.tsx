@@ -71,7 +71,7 @@ const EditModal = ({
             <div className="bg-white rounded-[20px] p-6 w-full max-w-sm flex flex-col gap-4 shadow-xl">
                 <div className="flex items-center justify-between">
                     <h3 className="text-[16px] font-semibold text-[#121212]">Edit Subject</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
+<button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <div
@@ -81,11 +81,15 @@ const EditModal = ({
                         {iconLoading ? (
                             <Spin size="small" />
                         ) : icon ? (
-                            <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                            icon.startsWith("http") ? (
+                                <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                            ) : (
+                                <div className="text-4xl flex items-center justify-center">{icon}</div>
+                            )
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-1">
                                 <FiPlus size={20} className="text-gray-400" />
-                                <span className="text-gray-400 text-[10px] text-center"></span>
+                                <span className="text-gray-400 text-[10px] text-center">Upload</span>
                             </div>
                         )}
                     </div>
@@ -162,13 +166,35 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
     const [subtitle, setSubtitle] = React.useState("");
     const [icon, setIcon] = React.useState("");
     const [iconLoading, setIconLoading] = React.useState(false);
+    const [errors, setErrors] = React.useState<{ title?: string }>({});
+
+    // Clear form when modal closes
+    React.useEffect(() => {
+        if (!isOpen) {
+            setLabel("");
+            setSubtitle("");
+            setIcon("");
+            setErrors({});
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
+    const validateForm = () => {
+        const newErrors: { title?: string } = {};
+        
+        if (!label.trim()) {
+            newErrors.title = "Title is required";
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = () => {
-        if (!label.trim()) return;
+        if (!validateForm()) return;
         onSubmit(label, subtitle, icon);
-        setLabel(""); setSubtitle(""); setIcon("📚");
+        setLabel(""); setSubtitle(""); setIcon("📚"); setErrors({});
     };
 
     return (
@@ -180,18 +206,22 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                 </div>
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col items-center gap-2">
-                       <div
+                        <div
                             className="w-[80px] h-[80px] rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden cursor-pointer border-2 border-dashed border-gray-200 hover:border-[#0F3057] transition-colors"
                             onClick={() => !iconLoading && document.getElementById("add-subject-icon-input")?.click()}
                         >
                             {iconLoading ? (
                                 <Spin size="small" />
                             ) : icon ? (
-                                <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                                icon.startsWith("http") ? (
+                                    <img src={icon} alt="icon" className="w-full h-full object-cover rounded-2xl" />
+                                ) : (
+                                    <div className="text-4xl flex items-center justify-center">{icon}</div>
+                                )
                             ) : (
                                 <div className="flex flex-col items-center justify-center gap-1">
                                     <FiPlus size={20} className="text-gray-400" />
-                                    <span className="text-gray-400 text-[10px] text-center"></span>
+                                    <span className="text-gray-400 text-[10px] text-center">Upload</span>
                                 </div>
                             )}
                         </div>
@@ -219,9 +249,10 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                     </div>
                     <div>
                         <label className="text-[12px] text-gray-500 mb-1 block">Title</label>
-                        <input value={label} onChange={(e) => setLabel(e.target.value)}
-                            className="w-full h-[44px] px-3 border border-gray-200 rounded-[10px] text-[14px] outline-none focus:border-[#0F3057]"
+                        <input value={label} onChange={(e) => { setLabel(e.target.value); setErrors(prev => ({ ...prev, title: "" })); }}
+                            className={`w-full h-[44px] px-3 border rounded-[10px] text-[14px] outline-none focus:border-[#0F3057] ${errors.title ? "border-red-500" : "border-gray-200"}`}
                             placeholder="e.g. Mathematics" autoFocus />
+                        {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
                     </div>
                     <div>
                         <label className="text-[12px] text-gray-500 mb-1 block">Subtitle</label>
@@ -231,9 +262,9 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
                     </div>
                 </div>
                 <div className="flex gap-3 w-full">
-                    <button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
+<button onClick={onClose} style={{ height: "44px" }} className="flex-1 border border-gray-200 rounded-[12px] text-[14px] text-gray-600 hover:bg-gray-50">Cancel</button>
                     <div className="flex-1">
-                        <Button onClick={handleSubmit} loading={loading} disabled={!label.trim() || loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Add</Button>
+                        <Button onClick={handleSubmit} loading={loading} disabled={loading} style={{ height: "44px" }} className="w-full bg-[#0F3057]! text-white! border-none! rounded-[12px]! text-[14px] font-semibold">Add</Button>
                     </div>
                 </div>
             </div>

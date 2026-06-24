@@ -40,8 +40,30 @@ const Login = () => {
             message.success("Login successful");
             useRedirect("/dashboard", true);
 
-        } catch (error: any) {
-            message.error(error?.message || "Login failed");
+       } catch (error: any) {
+            const errorCode = error?.code || error?.message || "";
+            
+            let userMessage = "Login failed. Please try again.";
+            
+            if (errorCode.includes("auth/invalid-credential")) {
+                userMessage = "Invalid email or password.";
+            } else if (errorCode.includes("auth/user-not-found")) {
+                userMessage = "Email not found.";
+            } else if (errorCode.includes("auth/wrong-password")) {
+                userMessage = "Incorrect password.";
+            } else if (errorCode.includes("auth/too-many-requests")) {
+                userMessage = "Too many login attempts. Try again later.";
+            } else if (errorCode.includes("auth/user-disabled")) {
+                userMessage = "This account has been disabled.";
+            } else if (errorCode.includes("auth/invalid-email")) {
+                userMessage = "Invalid email address.";
+            } else if (errorCode.includes("auth/network") || errorCode.includes("Network")) {
+                userMessage = "Network error. Check your connection.";
+            } else if (errorCode.includes("auth/operation-not-allowed")) {
+                userMessage = "This login method is not enabled.";
+            }
+            
+            message.error(userMessage);
         } finally {
             setIsLoading(false);
         }
