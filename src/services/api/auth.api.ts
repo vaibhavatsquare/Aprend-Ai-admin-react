@@ -29,6 +29,18 @@ export const authenticateWithAPI = async () => {
     return res;
 };
 
+export const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+        const res = await fetch<{ exists: boolean }>({
+            url: `/admin/auth/check-email-exists?email=${encodeURIComponent(email)}`,
+            method: "PUT",
+        });
+        return res?.exists === true;
+    } catch {
+        return false;
+    }
+};
+
 export const logoutUser = async (): Promise<void> => {
     const sessionId = localStorage.getItem("sessionId");
     if (!sessionId) return;

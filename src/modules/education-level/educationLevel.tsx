@@ -16,7 +16,7 @@ const CODE_ICON_MAP: Record<string, string> = {
     PUBLIC_EXAMS: "📋",
     ELEMENTARY_SCHOOL: "✏️",
 };
-const getIcon = (code: string) => CODE_ICON_MAP[code] ?? "🎓";
+const getIcon = (code: string) => CODE_ICON_MAP[code] ?? "📚";
 
 // ─── Local Level type (UI layer) ──────────────────────────────────────────────
 type Level = {
@@ -236,7 +236,7 @@ const AddModal = ({ isOpen, onClose, onSubmit, loading }: { isOpen: boolean; onC
     const handleSubmit = () => {
         if (!validateForm()) return;
         onSubmit(label, subtitle, icon, `${minAge}-${maxAge}`);
-        setLabel(""); setSubtitle(""); setIcon(""); setMinAge(""); setMaxAge(""); setErrors({});
+        setLabel(""); setSubtitle(""); setIcon("📚"); setMinAge(""); setMaxAge(""); setErrors({});
     };
 
     return (
