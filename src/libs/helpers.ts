@@ -20,9 +20,12 @@ export const waitForAuthState = (): Promise<User | null> => {
         authReadyPromise = new Promise((resolve) => {
             const auth = getAuth(app);
             const unsubscribe = onAuthStateChanged(auth, (user) => {
-                resolve(user); // Firebase has finished restoring the session
+                // resolve(user); 
+                // unsubscribe();
+                // authReadyPromise = null; 
+                resolve(user);
                 unsubscribe();
-                authReadyPromise = null; // Allow fresh checks on subsequent calls
+                authReadyPromise = null;
             });
         });
     }
@@ -102,6 +105,9 @@ const fetch = async <T>(config: AxiosRequestConfig): Promise<T> => {
             throw createNetworkError(ErrorType.NETWORK_UNAVAILABLE, "No internet connection. Please check your network.");
         }
 
+        // const axios = await API();
+        // const auth = getAuth();
+        await waitForAuthState();
         const axios = await API();
         const auth = getAuth();
         const user = auth.currentUser;
@@ -213,9 +219,15 @@ export const darkenColor = (hex: string, percent: number) => {
     return lightenColor(hex, -percent);
 };
 
+// export const clearData = () => {
+//     removeCookie("adminToken");
+//     localStorage.clear();
+// };
+
 export const clearData = () => {
     removeCookie("adminToken");
     localStorage.clear();
+    authReadyPromise = null;
 };
 
 export const getFocusMode = () => {

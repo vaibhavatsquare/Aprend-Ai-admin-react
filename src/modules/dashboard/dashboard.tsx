@@ -571,7 +571,9 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ErrorType | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const notifScrollRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -606,6 +608,16 @@ const AdminDashboard = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Infinite scroll — load more when near bottom
   const handleNotifScroll = useCallback(async () => {
     const el = notifScrollRef.current;
@@ -617,7 +629,11 @@ const AdminDashboard = () => {
     setLoadingMore(true);
     try {
       const data = await getNotifications(skip, TAKE);
-      setNotifications((prev) => [...prev, ...data.list.list]);
+      setNotifications((prev) => {
+        const existingIds = new Set(prev.map((n) => n.id));
+        const fresh = data.list.list.filter((n) => !existingIds.has(n.id));
+        return [...prev, ...fresh];
+      });
       setSkip((prev) => prev + TAKE);
       setHasMore(data.list.hasMany);
     } catch {
@@ -628,11 +644,12 @@ const AdminDashboard = () => {
   }, [hasMore, loadingMore, skip]);
 
   useEffect(() => {
+    if (!notifOpen) return;
     const el = notifScrollRef.current;
     if (!el) return;
     el.addEventListener("scroll", handleNotifScroll);
     return () => el.removeEventListener("scroll", handleNotifScroll);
-  }, [handleNotifScroll]);
+  }, [handleNotifScroll, notifOpen]);
 
   // Mark all notifications as read
   const handleMarkAllRead = async () => {
@@ -733,12 +750,78 @@ const AdminDashboard = () => {
           <button onClick={handleRetry} className="text-[#555555] hover:text-[#0F3057] transition-colors" title="Refresh">
             <FiRefreshCw className="text-base" />
           </button>
-          <Badge count={unreadCount} size="small">
-            <button className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-[#555555] hover:text-[#0F3057] transition-colors shadow-sm">
-              <FiBell />
-            </button>
-          </Badge>
-          <div className="w-9 h-9 rounded-xl bg-[#0F3057] flex items-center justify-center text-white text-sm font-semibold">A</div>
+          <div ref={bellRef} className="relative">
+            <Badge count={unreadCount} size="small">
+              <button onClick={() => setNotifOpen((prev) => !prev)} className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-[#555555] hover:text-[#0F3057] transition-colors shadow-sm">
+                <FiBell />
+              </button>
+            </Badge>
+
+            {/* Floating Dropdown */}
+            {notifOpen && (
+              <div className="absolute right-0 top-11 w-[320px] bg-white rounded-2xl border border-gray-100 z-50 flex flex-col" style={{ boxShadow: "0px 8px 32px 0px #0000001A" }}>
+                {/* Arrow */}
+                <div className="absolute -top-1.5 right-3 w-3 h-3 bg-white border-l border-t border-gray-100 rotate-45" />
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+                  <div>
+                    <p className="text-sm font-semibold text-[#0F3057]">Notifications</p>
+                    <p className="text-xs text-[#555555] mt-0.5">
+                      {unreadCount > 0 ? `${unreadCount} unread alert${unreadCount > 1 ? "s" : ""}` : "All caught up"}
+                    </p>
+                  </div>
+                  {unreadCount > 0 && (
+                    <button onClick={handleMarkAllRead} className="text-[10px] font-medium text-[#0F3057] hover:underline">
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+
+                {/* List */}
+                <div
+                  ref={notifScrollRef}
+                  className="flex flex-col gap-2 overflow-y-auto p-3 max-h-[360px]"
+                >
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <FiCheckCircle className="text-gray-300 text-3xl" />
+                      <p className="text-xs text-[#555555]">No notifications</p>
+                    </div>
+                  ) : (
+                    <>
+                      {notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => handleMarkOneRead(notif)}
+                          className={`flex gap-2.5 p-2.5 rounded-xl transition-colors cursor-pointer ${!notif.isRead ? "bg-[#0F30570A] hover:bg-[#0F305715]" : "bg-gray-50 hover:bg-gray-100"}`}
+                        >
+                          {getNotifIcon(notif.type)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-[11px] font-semibold text-[#0F3057] truncate">{notif.title}</p>
+                              {!notif.isRead && <span className="w-1.5 h-1.5 rounded-full bg-[#0F3057] shrink-0" />}
+                            </div>
+                            <p className="text-[10px] text-[#555555] leading-relaxed mt-0.5 line-clamp-2">{notif.body}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{formatTime(notif.createdAt)}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {hasMore && (
+                        <div className="flex items-center justify-center py-2">
+                          {loadingMore ? <Spin size="small" /> : <p className="text-[10px] text-gray-400 animate-pulse">Scroll for more...</p>}
+                        </div>
+                      )}
+                      {!hasMore && notifications.length > 0 && (
+                        <p className="text-[10px] text-gray-300 text-center py-2">All caught up</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
@@ -811,8 +894,8 @@ const AdminDashboard = () => {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2">
+      <div className="grid grid-cols-1 gap-4">
+        <div>
           <ChartCard title="Subscription Trends" subtitle="Monthly vs Yearly plan distribution">
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={charts?.charts.subscriptionTrends ?? []}>
@@ -837,7 +920,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Notifications Panel */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 flex flex-col" style={{ boxShadow: "0px 2px 12px 0px #0000000A" }}>
+        {/* <div className={`bg-white rounded-2xl p-5 border border-gray-100 flex-col ${notifOpen ? "flex" : "hidden"}`} style={{ boxShadow: "0px 2px 12px 0px #0000000A" }}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm font-semibold text-[#0F3057]">Notifications</p>
@@ -851,8 +934,6 @@ const AdminDashboard = () => {
               </button>
             )}
           </div>
-
-          {/* Scrollable list with infinite scroll */}
           <div
             ref={notifScrollRef}
             className="flex flex-col gap-2.5 overflow-y-auto scrollbar-mini flex-1 max-h-[260px]"
@@ -881,25 +962,18 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 ))}
-
-                {/* Load more indicator */}
-                 {hasMore && (
+                {hasMore && (
                   <div className="flex items-center justify-center py-2">
-                    {loadingMore
-                      ? <Spin size="small" />
-                      : <p className="text-[10px] text-gray-400 animate-pulse">Scroll for more...</p>
-                    }
+                    {loadingMore ? <Spin size="small" /> : <p className="text-[10px] text-gray-400 animate-pulse">Scroll for more...</p>}
                   </div>
                 )}
                 {!hasMore && notifications.length > 0 && (
                   <p className="text-[10px] text-gray-300 text-center py-2">All caught up</p>
                 )}
-
               </>
             )}
           </div>
-
-        </div>
+        </div> */}
       </div>
     </div>
   );

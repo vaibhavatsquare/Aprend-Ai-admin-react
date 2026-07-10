@@ -85,13 +85,13 @@ const Sidebar = () => {
             }}
         >
             {/* Logo */}
-            <Link href="/dashboard" className={`flex flex-col items-center`}>
-                <img src="/images/appLogo.svg" alt="Loading" className="w-[90px] h-[90px]" />
+            <Link href="/dashboard" className={`flex flex-col items-center pt-6`}>
+                <img src="/images/appLogo.svg" alt="Loading" className="w-[130px] h-[130px]" />
                 <p className="text-primary font-bold">MESTRE.IA</p>
             </Link>
 
             {/* Menu */}
-            <div className="flex flex-col justify-center flex-1 gap-2 mt-[-60]">
+            <div className="flex flex-col flex-1 gap-2 mt-10">
                 {menuItems.map((item) => {
                     const isActive = selectedItem === item.key;
                     const Icon = item.icon;

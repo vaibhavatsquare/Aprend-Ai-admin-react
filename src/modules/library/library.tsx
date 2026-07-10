@@ -201,7 +201,7 @@ const Library = () => {
                 .map((m) => ({ label: m.subject, value: m.subjectId }));
             const levelOpts = list
                 .filter((m) => m.educationLevelId)
-                .map((m) => ({ label: m.educationLevel, value: m.educationLevelId }));
+                .map((m) => ({ label: m.educationLevel.replace(/_/g, " "), value: m.educationLevelId }));
 
             setSubjectOptions((prev) => mergeOptions(prev, subjOpts));
             setLevelOptions((prev) => mergeOptions(prev, levelOpts));
