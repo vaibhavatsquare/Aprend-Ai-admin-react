@@ -53,7 +53,7 @@ const fetchIdToken = async (): Promise<string> => {
         );
     }
 
-    return await user.getIdToken(false);
+    return await user.getIdToken(true);
 };
 
 // Create or return the Axios instance
@@ -138,6 +138,14 @@ const fetch = async <T>(config: AxiosRequestConfig): Promise<T> => {
     } catch (error: any) {
         const errorType = classifyError(error);
         const errorMessage = extractErrorMessage(error);
+
+        if (errorType === ErrorType.FORBIDDEN) {
+            clearData();
+            if (typeof window !== "undefined") {
+                window.location.replace("/login");
+            }
+            throw createNetworkError(errorType, errorMessage, error?.response?.status, error);
+        }
 
         if (errorType === ErrorType.UNAUTHORIZED) {
             try {

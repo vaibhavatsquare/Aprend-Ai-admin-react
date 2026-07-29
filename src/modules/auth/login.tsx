@@ -9,7 +9,7 @@ import {
 } from "@/src/services/auth/auth.firebase.service";
 import { setCookie } from "@/src/services/coockies/coockie.service";
 import { useRedirect } from "@/src/hooks/router.hooks";
-import { authenticateWithAPI } from "@/src/services/api/auth.api";
+import { authenticateWithAPI, checkEmailExists } from "@/src/services/api/auth.api";
 import MiniLoader from "@/src/components/loaders/MiniLoader";
 
 interface LoginFormData {
@@ -29,6 +29,13 @@ const Login = () => {
     const handleLogin = async (data: LoginFormData) => {
         try {
             setIsLoading(true);
+            const emailExists = await checkEmailExists(data.email);
+            if (!emailExists) {
+                message.error("This email is not registered as an admin.");
+                setIsLoading(false);
+                return;
+            }
+
             const { user, idToken } = await signInWithFirebase(
                 data.email,
                 data.password

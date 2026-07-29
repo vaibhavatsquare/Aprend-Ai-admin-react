@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { setCookie } from "../services/coockies/coockie.service";
 import { getCookie } from "../services/coockies/coockie.service";
 import { clearData, waitForAuthState } from "../libs/helpers";
+import { authenticateWithAPI } from "../services/api/auth.api";
 import FullScreenLoader from "../components/loaders/fullScreenLoader";
 
 const withAuth = <P extends object>(
@@ -13,18 +15,43 @@ const withAuth = <P extends object>(
         const router = useRouter();
         const [loading, setLoading] = useState(true);
 
-        const checkAuthState = () => {
-            const adminToken = getCookie("adminToken");
-            waitForAuthState().then((user) => {
-                if (!user || !adminToken || adminToken.trim() === "") {
-                    clearData();
-                    router.replace("/login"); // Replace with your public login route
-                } else {
-                    setLoading(false);
-                }
-            });
-        };
+        const checkAuthState = async () => {
+    try {
+        const user = await waitForAuthState();
 
+        if (!user) {
+            clearData();
+            router.replace("/login");
+            return;
+        }
+
+        if (!user.email) {
+            clearData();
+            router.replace("/login");
+            return;
+        }
+
+        const freshToken = await user.getIdToken(true);
+
+        if (!freshToken) {
+            clearData();
+            router.replace("/login");
+            return;
+        }
+
+        const storedAdmin = localStorage.getItem("admin");
+        if (!storedAdmin) {
+            await authenticateWithAPI(); // re-fetches and stores sessionId, userId, admin
+        }
+
+        setCookie("adminToken", freshToken, 10);
+        setLoading(false);
+
+    } catch (error) {
+        clearData();
+        router.replace("/login");
+    }
+};
         useEffect(() => {
             checkAuthState();
         }, [router]);

@@ -31,11 +31,11 @@ export const authenticateWithAPI = async () => {
 
 export const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
-        const res = await fetch<{ exists: boolean }>({
+        const res = await fetch<{ isExists: boolean }>({
             url: `/admin/auth/check-email-exists?email=${encodeURIComponent(email)}`,
             method: "PUT",
         });
-        return res?.exists === true;
+        return res?.isExists === true;
     } catch {
         return false;
     }
